@@ -5,7 +5,7 @@ from setuptools import setup
 
 
 ptr_params = {
-    "entry_point_module": "aioexabgp/client/__init__",
+    "entry_point_module": "aioexabgp/announcer/__init__",
     # TODO: Change to a base test once we write more
     "test_suite": "aioexabgp.tests.pipes",
     "test_suite_timeout": 300,
@@ -18,9 +18,9 @@ ptr_params = {
 
 setup(
     name="aioexabgp",
-    version="2019.7.10",
+    version="2019.7.11",
     description=("asyncio exabgp base API client"),
-    packages=["aioexabgp.client", "aioexabgp.tests"],
+    packages=["aioexabgp", "aioexabgp.announcer", "aioexabgp.tests"],
     url="http://github.com/cooperlees/aioexabgp/",
     author="Cooper Lees",
     author_email="me@cooperlees.com",
