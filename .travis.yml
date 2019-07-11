@@ -7,14 +7,16 @@ matrix:
     - python: 3.6
     - python: 3.7
     - python: 3.8-dev
+    - python: nightly
   allow_failures:
     - python: 3.8-dev
+    - python: nightly
 
 install:
-  - pip install ptr
+  - pip install ptr black coverage flake8 mypy
 
 script:
-    - ptr
+    - ptr --venv $VIRTUAL_ENV
 
 notifications:
   irc:
