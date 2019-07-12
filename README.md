@@ -6,8 +6,10 @@ An example asyncio non blocking ExaBGP Library
 
 ## Client
 
-Library to perform X asynchronous healthchecks (of an IGP or a `ping` check)
-and handle announcing + withdrawing routes
+Library to perform X asynchronous healthchecks (e.g query an IGP or a `ping` check)
+and handle announcing + withdrawing routes. The library will also be able
+to read routes from ExaBGP peers and then program any FIB you write a Handler for
+(e.g. Linux Route table or an IGP)
 
 Goals:
 
@@ -16,21 +18,29 @@ Goals:
 
 ### Use
 
-Get an instance of ExaBGPClient and add healthchecks to
+Get an instance of `Announcer` class and add healthchecks to
 influence the addition and withdrawal of advertised routes.
 
 #### Sample
 
-- *TODO:* Please refer to `sample_exa_injector.py` to see how we propose usage of the client library
+The sample exists to show how you could extend the Announcer for route add and withdrawal
+via printing ExaBGP commands to STDOUT.
 
-### Design
+- Please refer to `aioexabgp.announcer.Announcer` for referenced class
+- `sample_announcer.json` is the configuration that drives `sample.py`
 
-- `__intit__.py`: Base ExaBGPClient for you to use and extend
-- `healthchecks.py`: Base and ping exabgp examples
+`aioexabgp.announver.sample` has a runnanble example. Steps to use:
 
-## Library
+- Create a venv: `python3 -m venv /tmp/tae`
+- Install module: `/tmp/tae/bin/pip install -e aioexabgp`
+- `cd aioexabgp/announcer/sample.py`
+- Run `/tmp/tae/bin/python sample.py`
 
-Will be adding asyncio helpers for working with exabgp
+You can also add some IPs to loopback to see health checks pass and fail
+**MacOS X**
+
+- Add: `sudo ifconfig lo0 inet6 alias 69::69`
+- Remove: `sudo ifconfig lo0 inet6 -alias 69::69`
 
 ### Modules
 

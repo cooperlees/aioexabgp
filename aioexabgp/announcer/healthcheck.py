@@ -3,6 +3,7 @@
 import asyncio
 import logging
 from ipaddress import ip_address
+from platform import system
 from typing import Dict, Sequence
 
 
@@ -23,12 +24,12 @@ class HealthChecker:
 
     async def run_cmd(self, cmd: Sequence[str]) -> bool:
         process = await asyncio.create_subprocess_exec(
-            cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+            *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
         )
         try:
             stdout, stderr = await asyncio.wait_for(process.communicate(), self.timeout)
-        except asyncio.TimeoutError as te:
-            LOG.error(f"{' '.join(cmd)} timed out: {te}")
+        except asyncio.TimeoutError:
+            LOG.error(f"{' '.join(cmd)} asyncio timed out")
             return False
 
         if process.returncode != 0:
@@ -56,11 +57,14 @@ class PingChecker(HealthChecker):
         self.timeout = config.get("ping_timeout", self.TIMEOUT_DEFAULT)
         self.wait = config.get("ping_wait", int(self.timeout) - 1)
 
+    def __str__(self):
+        return f"PingChecker - Target: {self.target_ip} Count: {self.count} Timeout: {self.timeout}"
+
     async def do_ping(self) -> bool:
         cmd = ["ping6"] if self.target_ip.version == 6 else ["ping"]
-        cmd.extend(
-            ["-c", str(self.count), "-w", str(self.wait), self.target_ip.compressed]
-        )
+        if system() != "Darwin":
+            cmd.extend(["-w", str(self.wait)])
+        cmd.extend(["-c", str(self.count), self.target_ip.compressed])
         return await self.run_cmd(cmd)
 
     async def check(self) -> bool:
@@ -73,3 +77,10 @@ class PingChecker(HealthChecker):
             )
 
         return False
+
+
+def get_health_checker(class_name: str, kwargs: Dict) -> HealthChecker:
+    if class_name == "PingChecker":
+        return PingChecker(**kwargs)
+
+    return HealthChecker(**kwargs)

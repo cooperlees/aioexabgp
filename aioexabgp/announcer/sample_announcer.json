@@ -1,0 +1,24 @@
+{
+    "conf_version": "0.0.1",
+    "advertise": {
+        "interval": 5.0,
+        "prefixes": {
+            "69::/32": [
+                {
+                    "class": "PingChecker",
+                    "kwargs": {"config" : {"ping_target": "69::69"}}
+                }
+            ],
+            "70::/32": [
+                {
+                    "class": "PingChecker",
+                    "kwargs": {"config" : {"ping_target": "70::69"}}
+                }
+            ]
+        }
+    },
+    "learn": {
+        "fib": ["Linux", "VPP"]
+    },
+    "log_level": "Debug"
+}
