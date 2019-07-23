@@ -1,5 +1,4 @@
 #!/usr/bin/env python3.7
-# Copyright (c) 2014-present, Facebook, Inc.
 
 import os
 import unittest

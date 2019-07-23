@@ -3,56 +3,21 @@
 import argparse
 import asyncio
 import logging
-from ipaddress import IPv4Network, IPv6Network, ip_network
 from json import JSONDecodeError, load
 from pathlib import Path
-from typing import Dict, Union
+from typing import Dict
 
 from aioexabgp.announcer import Announcer
-from aioexabgp.announcer.healthcheck import get_health_checker
+from aioexabgp.announcer.healthcheck import gen_advertise_prefixes
 
-
-IPNetwork = Union[IPv4Network, IPv6Network]
 LOG = logging.getLogger(__name__)
 
 
-# TODO: Potentially remove and use all from generic class
-class SampleAnnouncer(Announcer):
-    """ An example making a ping cause routing advertising and withdrawal
-        Note: I don't reccomend ping as your first choice
-        - Alternate: Looking at your IGP's RIB/FIB programatically """
-
-    async def learn(self) -> None:
-        pass
-
-
-def _gen_advertise_prefixes(config: Dict) -> Dict:
-    advertise_prefixes = {}
-    for prefix, checkers in config["advertise"]["prefixes"].items():
-        try:
-            network_prefix = ip_network(prefix)
-        except ValueError:
-            LOG.error(f"{prefix} ignored - Invalid IP Network")
-            continue
-
-        advertise_prefixes[network_prefix] = []
-
-        if not checkers:
-            continue
-
-        for checker in checkers:
-            advertise_prefixes[network_prefix].append(
-                get_health_checker(checker["class"], checker["kwargs"])
-            )
-
-    return advertise_prefixes
-
-
-def _gen_config(config: str) -> Dict:
+def _load_json_config(config: str) -> Dict:
     """ Generate an Announce config - We have one by default """
     json_conf = {}
 
-    config_path = Path(config.config)
+    config_path = Path(config)
     if not config_path.exists():
         LOG.error(f"{config_path} does not exist. Can not continue")
         return json_conf
@@ -88,13 +53,12 @@ def main() -> int:
         level=log_level,
     )
 
-    config = _gen_config(args)
+    config = _load_json_config(args.config)
     if not config:
         return 69
 
-    advertise_prefixes = _gen_advertise_prefixes(config)
-    learn_fibs = []  # TODO: Pull from config
-    announcer = SampleAnnouncer(config, advertise_prefixes, learn_fibs)
+    advertise_prefixes = gen_advertise_prefixes(config)
+    announcer = Announcer(config, advertise_prefixes)
 
     loop = asyncio.get_event_loop()
     try:

@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 
-import asyncio
 import logging
-from ipaddress import ip_address
+from ipaddress import IPv4Network, IPv6Network, ip_address, ip_network
 from platform import system
-from typing import Dict, Sequence
+from typing import Dict, List, Union
+
+# TODO: Work out why mypy can't find utils
+from aioexabgp.utils import run_cmd  # type: ignore
 
 
+IPNetwork = Union[IPv4Network, IPv6Network]
 LOG = logging.getLogger(__name__)
 
 
@@ -21,25 +24,6 @@ class HealthChecker:
 
     async def check(self) -> bool:
         raise NotImplementedError("Implement in subclass")
-
-    async def run_cmd(self, cmd: Sequence[str]) -> bool:
-        process = await asyncio.create_subprocess_exec(
-            *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
-        )
-        try:
-            stdout, stderr = await asyncio.wait_for(process.communicate(), self.timeout)
-        except asyncio.TimeoutError:
-            LOG.error(f"{' '.join(cmd)} asyncio timed out")
-            return False
-
-        if process.returncode != 0:
-            LOG.error(
-                f"{' '.join(cmd)} returned {process.returncode}:\n"
-                + f"STDERR: {stderr.decode('utf-8')}\nSTDOUT: {stdout.decode('utf-8')}"
-            )
-            return False
-
-        return True
 
 
 class PingChecker(HealthChecker):
@@ -65,7 +49,7 @@ class PingChecker(HealthChecker):
         if system() != "Darwin":
             cmd.extend(["-w", str(self.wait)])
         cmd.extend(["-c", str(self.count), self.target_ip.compressed])
-        return await self.run_cmd(cmd)
+        return await run_cmd(cmd, self.timeout)
 
     async def check(self) -> bool:
         try:
@@ -79,8 +63,30 @@ class PingChecker(HealthChecker):
         return False
 
 
-def get_health_checker(class_name: str, kwargs: Dict) -> HealthChecker:
-    if class_name == "PingChecker":
+def gen_advertise_prefixes(config: Dict) -> Dict:
+    advertise_prefixes: Dict[IPNetwork, List[HealthChecker]] = {}
+    for prefix, checkers in config["advertise"]["prefixes"].items():
+        try:
+            network_prefix = ip_network(prefix)
+        except ValueError:
+            LOG.error(f"{prefix} ignored - Invalid IP Network")
+            continue
+
+        advertise_prefixes[network_prefix] = []
+
+        if not checkers:
+            continue
+
+        for checker in checkers:
+            advertise_prefixes[network_prefix].append(
+                get_health_checker(checker["class"], checker["kwargs"])
+            )
+
+    return advertise_prefixes
+
+
+def get_health_checker(checker_name: str, kwargs: Dict) -> HealthChecker:
+    if checker_name == "PingChecker":
         return PingChecker(**kwargs)
 
-    return HealthChecker(**kwargs)
+    raise ValueError(f"{checker_name} is not a valid option")

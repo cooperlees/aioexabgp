@@ -1,0 +1,58 @@
+#!/usr/bin/env python3.7
+
+import asyncio
+import unittest
+from contextlib import redirect_stdout
+from io import StringIO
+
+from aioexabgp.announcer import Announcer
+from aioexabgp.announcer.healthcheck import gen_advertise_prefixes
+
+# TODO: EXABGP_ANNOUNCE_JSON, WITHDRAW_JSON
+from aioexabgp.tests.announcer_fixtures import ANNOUNCER_CONFIG
+
+
+class AnnouncerTests(unittest.TestCase):
+    def setUp(self) -> None:
+        advertise_prefixes = gen_advertise_prefixes(ANNOUNCER_CONFIG)
+        self.aa = Announcer(ANNOUNCER_CONFIG, advertise_prefixes)
+        self.loop = asyncio.get_event_loop()
+
+    def test_add_routes(self) -> None:
+        prefix = sorted(self.aa.advertise_prefixes.keys()).pop()
+        expected_output = f"announce route {prefix} next-hop self"
+        with StringIO() as buf, redirect_stdout(buf):
+            added_count = self.loop.run_until_complete(self.aa.add_routes([prefix]))
+            output = buf.getvalue().strip()
+        self.assertEqual(added_count, 1)
+        self.assertEqual(expected_output, output)
+
+    def test_withdraw_routes(self) -> None:
+        prefix = sorted(self.aa.advertise_prefixes.keys()).pop()
+        expected_output = f"withdraw route {prefix}"
+        with StringIO() as buf, redirect_stdout(buf):
+            added_count = self.loop.run_until_complete(
+                self.aa.withdraw_routes([prefix])
+            )
+            output = buf.getvalue().strip()
+        self.assertEqual(added_count, 1)
+        self.assertEqual(expected_output, output)
+
+    def test_nonblock_print(self) -> None:
+        expected_output = "Hello World!"
+        with StringIO() as buf, redirect_stdout(buf):
+            self.loop.run_until_complete(self.aa.nonblock_print(expected_output))
+            output = buf.getvalue().strip()
+        self.assertEqual(expected_output, output)
+
+    def test_nonblock_read(self) -> None:
+        line1 = "Line 1\n"
+        fake_stdin = StringIO(f"{line1}line2\n")
+        self.assertEqual(
+            self.loop.run_until_complete(self.aa.nonblock_read(fake_stdin)),
+            line1.strip(),
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()

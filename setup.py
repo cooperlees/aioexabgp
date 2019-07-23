@@ -1,15 +1,20 @@
 #!/usr/bin/env python3
-# Copyright (c) 2014-present, Facebook, Inc.
 
 from setuptools import setup
 
 
 ptr_params = {
     "entry_point_module": "aioexabgp/announcer/__init__",
-    # TODO: Change to a base test once we write more
-    "test_suite": "aioexabgp.tests.pipes",
+    "test_suite": "aioexabgp.tests.base",
     "test_suite_timeout": 300,
-    "required_coverage": {"aioexabgp/pipes.py": 70},
+    "required_coverage": {
+        "aioexabgp/announcer/__init__.py": 40,
+        "aioexabgp/announcer/fibs.py": 60,
+        "aioexabgp/announcer/healthcheck.py": 60,
+        "aioexabgp/pipes.py": 70,
+        "aioexabgp/utils.py": 90,
+        "TOTAL": 70,
+    },
     "run_flake8": True,
     "run_black": True,
     "run_mypy": True,
@@ -18,7 +23,7 @@ ptr_params = {
 
 setup(
     name="aioexabgp",
-    version="2019.7.22",
+    version="2019.7.23",
     description=("asyncio exabgp base API client"),
     packages=["aioexabgp", "aioexabgp.announcer", "aioexabgp.tests"],
     url="http://github.com/cooperlees/aioexabgp/",
