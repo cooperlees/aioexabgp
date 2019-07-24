@@ -52,7 +52,3 @@ class AnnouncerTests(unittest.TestCase):
             self.loop.run_until_complete(self.aa.nonblock_read(fake_stdin)),
             line1.strip(),
         )
-
-
-if __name__ == "__main__":
-    unittest.main()

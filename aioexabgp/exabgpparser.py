@@ -2,6 +2,7 @@
 
 import logging
 from ipaddress import ip_address, ip_network
+from json import dumps
 from typing import Dict, List, Sequence
 
 from aioexabgp.announcer.fibs import FibOperation, FibPrefix
@@ -18,15 +19,37 @@ class ExaBGPParser:
     SUPPORTED_API_VERSION = "4.0.1"
 
     async def parse(self, exa_json: Dict) -> List[FibPrefix]:
-        # TODO: Handle peer disappearing / closing
-        if exa_json["type"] == "update":
+        if exa_json["exabgp"] != self.SUPPORTED_API_VERSION:
+            raise ValueError(
+                f"Exabgp JSON version has changed from know tested version. Investigate"
+            )
+
+        if exa_json["type"].lower() == "state":
+            peer = exa_json["neighbor"]["address"]["peer"]
+            state = exa_json["neighbor"]["state"]
+            if state.lower() == "connected":
+                LOG.info(f"Peer {peer}: BGP has reached 'connected' state")
+            elif state.lower() == "down":
+                reason = exa_json["neighbor"]["reason"]
+                LOG.error(
+                    f"Peer {peer}: BGP has reached 'down' state. Reason: {reason}"
+                )
+                return [
+                    FibPrefix(
+                        ip_network("::/0"),
+                        ip_address(peer),
+                        FibOperation.REMOVE_ALL_ROUTES,
+                    )
+                ]
+            else:
+                LOG.info(f"Peer {peer}: BGP has gone to '{state}' state.")
+        elif exa_json["type"].lower() == "update":
             return await self.parse_update(exa_json)
         else:
-            LOG.error(f"neighbor JSON not parsed: {exa_json}")
+            LOG.error(f"exabgp JSON not parsed:\n{dumps(exa_json)}")
 
         return []
 
-    # TODO: Split this function - To complex and not clean
     async def parse_update(
         self, exa_json: Dict, wanted_families: Sequence[str] = DEFAULT_FAMALIES
     ) -> List[FibPrefix]:
@@ -54,6 +77,9 @@ class ExaBGPParser:
                                         FibOperation.ADD_ROUTE,
                                     )
                                 )
+                        LOG.info(
+                            f"Peer {peer}: Sent {len(fib_prefixes)} to add to fibs"
+                        )
                     elif operation == "withdraw":
                         for prefix in peers:
                             fib_prefixes.append(
@@ -63,6 +89,9 @@ class ExaBGPParser:
                                     FibOperation.REMOVE_ROUTE,
                                 )
                             )
+                        LOG.info(
+                            f"Peer {peer}: Sent {len(fib_prefixes)} to remove from fibs"
+                        )
         except (KeyError, ValueError) as ve:
             LOG.error(f"Unable to parse BGP update: {exa_json} ({ve})")
 

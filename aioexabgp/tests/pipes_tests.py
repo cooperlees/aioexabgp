@@ -28,8 +28,8 @@ class ExaBGPPipesTests(unittest.TestCase):
         for a_pipe in (self.in_pipe, self.out_pipe):
             try:
                 a_pipe.unlink()
-            except IOError:
-                pass
+            except IOError:  # pragma: nocover
+                pass  # pragma: nocover
 
     def _make_pipes(self) -> None:
         for a_pipe in (self.in_pipe, self.out_pipe):
@@ -43,7 +43,3 @@ class ExaBGPPipesTests(unittest.TestCase):
     def test_write_timeout(self) -> None:
         with self.assertRaises(TimeoutError):
             self.loop.run_until_complete(self.exabgppipes.write("s", timeout=0.5))
-
-
-if __name__ == "__main__":
-    unittest.main()

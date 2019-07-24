@@ -9,8 +9,9 @@ ptr_params = {
     "test_suite_timeout": 300,
     "required_coverage": {
         "aioexabgp/announcer/__init__.py": 40,
-        "aioexabgp/announcer/fibs.py": 60,
+        "aioexabgp/announcer/fibs.py": 70,
         "aioexabgp/announcer/healthcheck.py": 60,
+        "aioexabgp/exabgpparser.py": 85,
         "aioexabgp/pipes.py": 70,
         "aioexabgp/utils.py": 90,
         "TOTAL": 70,
@@ -23,7 +24,7 @@ ptr_params = {
 
 setup(
     name="aioexabgp",
-    version="2019.7.23",
+    version="2019.7.24",
     description=("asyncio exabgp base API client"),
     packages=["aioexabgp", "aioexabgp.announcer", "aioexabgp.tests"],
     url="http://github.com/cooperlees/aioexabgp/",

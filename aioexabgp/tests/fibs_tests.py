@@ -13,7 +13,3 @@ class FibsTests(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             get_fib("JunOS", bs_config)
-
-
-if __name__ == "__main__":
-    unittest.main()

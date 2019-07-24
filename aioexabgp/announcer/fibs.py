@@ -19,6 +19,7 @@ class FibOperation(Enum):
     NOTHING = 0
     ADD_ROUTE = 1
     REMOVE_ROUTE = 2
+    REMOVE_ALL_ROUTES = 3
 
 
 class FibPrefix(NamedTuple):
