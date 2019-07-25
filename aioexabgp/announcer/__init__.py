@@ -27,13 +27,21 @@ class Announcer:
         *,
         executor: Optional[Union[ProcessPoolExecutor, ThreadPoolExecutor]] = None,
         print_timeout: float = 5.0,
+        dry_run: bool = False,
     ) -> None:
         self.advertise_prefixes = advertise_prefixes
         self.config = config
-        self.executor = executor
+        self.dry_run = dry_run
         self.learn_fibs = config["learn"].get("fibs", [])
+        self.learn_queue: asyncio.Queue = asyncio.Queue()
         self.loop = asyncio.get_event_loop()
         self.print_timeout = print_timeout
+
+        self.executor = executor
+        if not executor:
+            self.executor = ThreadPoolExecutor(
+                max_workers=8, thread_name_prefix="AnnouncerDefault"
+            )
 
     async def nonblock_print(self, output: str) -> bool:
         """ Wrap print so we can timeout """
@@ -81,7 +89,12 @@ class Announcer:
             LOG.info(f"Will program learned routes to {' '.join(self.learn_fibs)} FIBs")
             route_coros.append(self.learn())
 
-        await asyncio.gather(*route_coros)
+        try:
+            await asyncio.gather(*route_coros)
+        except asyncio.CancelledError:
+            if self.executor:
+                self.executor.shutdown(wait=False)
+            raise
 
     async def advertise(self) -> None:
         while True:
@@ -122,20 +135,28 @@ class Announcer:
 
             run_time = time() - start_time
             sleep_time = interval - run_time
-            LOG.debug(f"Route check original sleep_time = {sleep_time}s")
             if sleep_time < 0:
+                LOG.debug(f"Sleep time was negative: {sleep_time}s. Setting to 0")
                 sleep_time = 0
             LOG.info(f"Route checks complete. Sleeping for {sleep_time}s")
             await asyncio.sleep(sleep_time)
 
-    async def learn(self, dry_run: bool = False) -> None:
+    async def fib_consumer(self) -> None:
+        while True:
+            fib_operation = await self.learn_queue.get()
+            if self.dry_run:
+                LOG.info(f"[DRY RUN]: Would of ran {fib_operation} on all FIBs")
+                continue
+
+            LOG.debug("TODO")  # COOPER
+
+    async def learn(self) -> None:
         """ Read messages from exabgp and act accordinly
             - We only support JSON API """
-        learn_queue: asyncio.Queue = asyncio.Queue()
         ejp = ExaBGPParser()
 
-        # TODO: Start a FIB consumer task for syncing all FIBs
-        # fib_consumer = loop.create_task(prefix_sonsumer(learn_queue, self.fibs))
+        fib_consumer = self.loop.create_task(self.fib_consumer())
+        LOG.debug(f"Started a FIB operation consumer")
 
         try:
             while True:
@@ -154,16 +175,13 @@ class Announcer:
                     LOG.debug(f"Ignoring non neighbor JSON: {bgp_json}")
                     continue
 
-                fib_prefix = await ejp.parse(bgp_json)
-                if not fib_prefix:
+                fib_operation = await ejp.parse(bgp_json)
+                if not fib_operation:
                     LOG.error(f"Unable to parse API JSON: {bgp_json}")
                     continue
 
-                if not dry_run:
-                    LOG.debug(f"Adding {fib_prefix} to learn_queue")
-                    await learn_queue.put(fib_prefix)
-                else:
-                    LOG.info(f"[DRY RUN]: Would of added {fib_prefix} to learn_queue")
+                LOG.debug(f"Adding {fib_operation} to learn_queue")
+                await self.learn_queue.put(fib_operation)
         except asyncio.CancelledError:
-            # fib_consumer.cancel()
+            fib_consumer.cancel()
             raise

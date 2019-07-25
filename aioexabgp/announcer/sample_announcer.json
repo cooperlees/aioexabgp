@@ -6,20 +6,30 @@
             "69::/32": [
                 {
                     "class": "PingChecker",
-                    "kwargs": {"config" : {"ping_target": "69::69"}}
+                    "kwargs": {
+                        "config": {
+                            "ping_target": "69::69"
+                        }
+                    }
                 }
             ],
             "70::/32": [
                 {
                     "class": "PingChecker",
-                    "kwargs": {"config" : {"ping_target": "70::69"}}
+                    "kwargs": {
+                        "config": {
+                            "ping_target": "70::69"
+                        }
+                    }
                 }
             ]
         }
     },
     "learn": {
         "allow_default": false,
-        "fibs": ["Linux"],
+        "fibs": [
+            "Linux"
+        ],
         "filter_prefixes": [],
         "prefix_limit": 0
     },

@@ -3,6 +3,7 @@
 import argparse
 import asyncio
 import logging
+import signal
 from json import JSONDecodeError, load
 from pathlib import Path
 from typing import Dict
@@ -58,11 +59,15 @@ def main() -> int:
         return 69
 
     advertise_prefixes = gen_advertise_prefixes(config)
-    announcer = Announcer(config, advertise_prefixes)
+    announcer = Announcer(config, advertise_prefixes, dry_run=args.dry_run)
 
     loop = asyncio.get_event_loop()
+    cordinator_task = loop.create_task(announcer.coordinator())
+    for s in (signal.SIGINT, signal.SIGTERM):
+        loop.add_signal_handler(s, lambda: cordinator_task.cancel())
+
     try:
-        loop.run_until_complete(announcer.coordinator())
+        loop.run_until_complete(cordinator_task)
     finally:
         loop.close()
 

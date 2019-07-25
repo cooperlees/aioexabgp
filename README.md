@@ -29,12 +29,21 @@ via printing ExaBGP commands to STDOUT.
 - Please refer to `aioexabgp.announcer.Announcer` for referenced class
 - `sample_announcer.json` is the configuration that drives `sample.py`
 
-`aioexabgp.announver.sample` has a runnanble example. Steps to use:
+`aioexabgp.announver.sample` has a runnable example. `-D` here is important for dry run. Steps to use:
 
-- Create a venv: `python3 -m venv /tmp/tae`
-- Install module: `/tmp/tae/bin/pip install -e aioexabgp`
-- `cd aioexabgp/announcer/sample.py`
-- Run `/tmp/tae/bin/python sample.py`
+- Create a venv
+- cd to this repo base
+- Install aioexabgp
+- Run
+
+```shell
+python3 -m venv /tmp/tae
+cd .
+/tmp/tae/bin/pip install --upgrade pip setuptools
+/tmp/tae/bin/pip install [-e] .
+# Run the code
+/tmp/tae/bin/python aioexabgp/announcer/sample.py -c aioexabgp/announcer/sample_announcer.json -D -d
+```
 
 You can also add some IPs to loopback to see health checks pass and fail
 **MacOS X**
@@ -44,9 +53,10 @@ You can also add some IPs to loopback to see health checks pass and fail
 
 ### Modules
 
+- `exabgpparser.py`: All the API JSON parsing into **FibPrefix** named tuples
 - `pipes.py`: Class to hold ownership of the named pipes and optional synconization lock
 
-## Running CI / Testing
+## Running CI / Unit Tests
 
 We are all `ptr` powered. To run CI:
 
