@@ -5,7 +5,7 @@ import logging
 from enum import Enum
 from ipaddress import IPv4Address, IPv4Network, IPv6Address, IPv6Network, ip_network
 from platform import system
-from typing import Dict, NamedTuple, Optional, Sequence, Union
+from typing import Awaitable, Dict, List, NamedTuple, Optional, Sequence, Union
 
 from aioexabgp.utils import run_cmd
 
@@ -62,6 +62,16 @@ class Fib:
     def is_default(self, prefix: IPNetwork) -> bool:
         return prefix in self.DEFAULTS
 
+    ## To be implemented in child classes + make mypy happy
+    async def add_route(self, prefix: IPNetwork, next_hop: IPAddress) -> bool:
+        raise NotImplementedError("Please implement in sub class")
+
+    async def del_all_routes(self, next_hop: IPNetwork) -> bool:
+        raise NotImplementedError("Please implement in sub class")
+
+    async def del_route(self, prefix: IPNetwork) -> bool:
+        raise NotImplementedError("Please implement in sub class")
+
 
 class LinuxFib(Fib):
     """ Adding and taking routes out of the Linux (or Mac OS X) Routing Table """
@@ -91,6 +101,12 @@ class LinuxFib(Fib):
             self.timeout,
         )
 
+    async def del_all_routes(self, next_hop: IPNetwork) -> bool:
+        LOG.error(f"[{self.FIB_NAME}] does not have del_all_routes implemented")
+        # TODO: Implement removal of all routes for next_hop
+        # return await run_cmd()
+        return False
+
     async def del_route(self, prefix: IPNetwork) -> bool:
         LOG.info(f"[{self.FIB_NAME}] Deleting route to {str(prefix)}")
         return await run_cmd(
@@ -106,6 +122,54 @@ def get_fib(fib_name: str, config: Dict) -> Fib:
     raise ValueError(f"{fib_name} is not a valid option")
 
 
-def prefix_consumer(self, queue: asyncio.Queue, fibs: Sequence[Fib]) -> None:
+async def prefix_consumer(
+    prefix_queue: asyncio.Queue,
+    fib_names: Sequence[str],
+    config: Dict,
+    *,
+    dry_run: bool = False,
+) -> None:
     """ Watch the queue for FibPrefix and apply the FibOperation to all FIBs """
-    pass
+    fibs = {f: get_fib(f, config) for f in fib_names}
+    LOG.debug(f"prefix_consumer got {len(fibs)} FIBS")
+
+    while True:
+        fib_operation = await prefix_queue.get()
+
+        route_tasks: List[Awaitable] = []
+        for fib_name, fib in fibs.items():
+            if fib_operation.operation == FibOperation.ADD_ROUTE:
+                LOG.debug(
+                    f"Adding {fib_operation.prefix} route via {fib_operation.next_hop} to {fib_name}"
+                )
+                route_tasks.append(
+                    fib.add_route(fib_operation.prefix, fib_operation.next_hop)
+                )
+            elif fib_operation.operation == FibOperation.REMOVE_ROUTE:
+                LOG.debug(
+                    f"Removing {fib_operation.prefix} route via {fib_operation.next_hop} from {fib_name}"
+                )
+                route_tasks.append(fib.del_route(fib_operation.next_hop))
+            elif fib_operation.operation == FibOperation.REMOVE_ALL_ROUTES:
+                LOG.debug(
+                    f"Removing ALL routes via {fib_operation.next_hop} from {fib_name}"
+                )
+                route_tasks.append(fib.del_route(fib_operation.next_hop))
+            else:
+                LOG.error(
+                    f"[prefix_consumer] {fib_operation.operation} operation is unhandled"
+                )
+
+        if not route_tasks:
+            LOG.error(f"[prefix_consumer] No route tasks generated for update")
+            continue
+
+        log_msg = f"[prefix_consumer] Running all {len(route_tasks)} FIB operations for {fib_operation}"
+        if dry_run:
+            LOG.info(f"[DRY RUN] {log_msg}")
+            continue
+
+        LOG.info(log_msg)
+        update_success = await asyncio.gather(*route_tasks)
+        if not all(update_success):
+            LOG.error(f"There was a FIB operation failure. Please investigate!")

@@ -12,6 +12,7 @@ from time import time
 from typing import Awaitable, Dict, List, Optional, Sequence, TextIO, Union
 
 from aioexabgp.exabgpparser import ExaBGPParser
+from .fibs import prefix_consumer
 from .healthcheck import HealthChecker
 
 IPNetwork = Union[IPv4Network, IPv6Network]
@@ -82,7 +83,7 @@ class Announcer:
             success += 1
         return success
 
-    async def coordinator(self, *, dry_run: bool = False) -> None:
+    async def coordinator(self) -> None:
         LOG.info(f"Monitoring and announcing {len(self.advertise_prefixes)} prefixes")
         route_coros = [self.advertise()]
         if self.learn_fibs:
@@ -141,21 +142,17 @@ class Announcer:
             LOG.info(f"Route checks complete. Sleeping for {sleep_time}s")
             await asyncio.sleep(sleep_time)
 
-    async def fib_consumer(self) -> None:
-        while True:
-            fib_operation = await self.learn_queue.get()
-            if self.dry_run:
-                LOG.info(f"[DRY RUN]: Would of ran {fib_operation} on all FIBs")
-                continue
-
-            LOG.debug("TODO")  # COOPER
-
     async def learn(self) -> None:
         """ Read messages from exabgp and act accordinly
             - We only support JSON API """
         ejp = ExaBGPParser()
 
-        fib_consumer = self.loop.create_task(self.fib_consumer())
+        fib_names = self.config["learn"].get("fibs", [])
+        fib_consumer = self.loop.create_task(
+            prefix_consumer(
+                self.learn_queue, fib_names, self.config, dry_run=self.dry_run
+            )
+        )
         LOG.debug(f"Started a FIB operation consumer")
 
         try:
