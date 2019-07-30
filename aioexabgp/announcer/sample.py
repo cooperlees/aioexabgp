@@ -46,10 +46,17 @@ def main() -> int:
     parser.add_argument(
         "-d", "--debug", action="store_true", help="Verbose debug output"
     )
+    parser.add_argument(
+        "-l",
+        "--logfile",
+        default=None,
+        help="File to send announcer specific logs to (Default stderr)",
+    )
     args = parser.parse_args()
 
     log_level = logging.DEBUG if args.debug else logging.INFO
     logging.basicConfig(
+        filename=args.logfile,
         format="[%(asctime)s] %(levelname)s: %(message)s (%(filename)s:%(lineno)d)",
         level=log_level,
     )
@@ -58,6 +65,7 @@ def main() -> int:
     if not config:
         return 69
 
+    LOG.debug("Starting announcer - Config loaded ...")
     advertise_prefixes = gen_advertise_prefixes(config)
     announcer = Announcer(config, advertise_prefixes, dry_run=args.dry_run)
 
