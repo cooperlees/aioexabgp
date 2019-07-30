@@ -78,7 +78,7 @@ class ExaBGPParser:
                                     )
                                 )
                         LOG.info(
-                            f"Peer {peer}: Sent {len(fib_prefixes)} to add to fibs"
+                            f"Peer {peer}: Sent {len(fib_prefixes)} prefixes to add to fibs"
                         )
                     elif operation == "withdraw":
                         for prefix in peers:
