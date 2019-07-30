@@ -136,51 +136,52 @@ async def prefix_consumer(
     while True:
         LOG.debug(f"[prefix_consumer] Waiting for FIB prefix to consume")
         try:
-            fib_operation = await prefix_queue.get()
+            fib_operations = await prefix_queue.get()
             LOG.info(
                 f"[prefix_consumer] Prefix Queue has {prefix_queue.qsize()} tasks queued"
             )
 
             route_tasks: List[Awaitable] = []
-            for fib_name, fib in fibs.items():
-                if fib_operation.operation == FibOperation.ADD_ROUTE:
-                    LOG.debug(
-                        f"[prefix_consumer] Adding {fib_operation.prefix} route via {fib_operation.next_hop} to {fib_name}"
-                    )
-                    route_tasks.append(
-                        fib.add_route(fib_operation.prefix, fib_operation.next_hop)
-                    )
-                elif fib_operation.operation == FibOperation.REMOVE_ROUTE:
-                    LOG.debug(
-                        f"[prefix_consumer] Removing {fib_operation.prefix} route via {fib_operation.next_hop} from {fib_name}"
-                    )
-                    route_tasks.append(fib.del_route(fib_operation.next_hop))
-                elif fib_operation.operation == FibOperation.REMOVE_ALL_ROUTES:
-                    LOG.debug(
-                        f"[prefix_consumer] Removing ALL routes via {fib_operation.next_hop} from {fib_name}"
-                    )
-                    route_tasks.append(fib.del_route(fib_operation.next_hop))
-                else:
+            for fib_operation in fib_operations:
+                for fib_name, fib in fibs.items():
+                    if fib_operation.operation == FibOperation.ADD_ROUTE:
+                        LOG.debug(
+                            f"[prefix_consumer] Adding {fib_operation.prefix} route via {fib_operation.next_hop} to {fib_name}"
+                        )
+                        route_tasks.append(
+                            fib.add_route(fib_operation.prefix, fib_operation.next_hop)
+                        )
+                    elif fib_operation.operation == FibOperation.REMOVE_ROUTE:
+                        LOG.debug(
+                            f"[prefix_consumer] Removing {fib_operation.prefix} route via {fib_operation.next_hop} from {fib_name}"
+                        )
+                        route_tasks.append(fib.del_route(fib_operation.next_hop))
+                    elif fib_operation.operation == FibOperation.REMOVE_ALL_ROUTES:
+                        LOG.debug(
+                            f"[prefix_consumer] Removing ALL routes via {fib_operation.next_hop} from {fib_name}"
+                        )
+                        route_tasks.append(fib.del_route(fib_operation.next_hop))
+                    else:
+                        LOG.error(
+                            f"[prefix_consumer] {fib_operation.operation} operation is unhandled"
+                        )
+
+                if not route_tasks:
+                    LOG.error(f"[prefix_consumer] No route tasks generated for update")
+                    continue
+
+                log_msg = f"[prefix_consumer] Running all {len(route_tasks)} FIB operations for {fib_operation}"
+                if dry_run:
+                    LOG.info(f"[DRY RUN] {log_msg}")
+                    del route_tasks
+                    continue
+
+                LOG.info(log_msg)
+                update_success = await asyncio.gather(*route_tasks)
+                if not all(update_success):
                     LOG.error(
-                        f"[prefix_consumer] {fib_operation.operation} operation is unhandled"
+                        f"[prefix_consumer] There was a FIB operation failure. Please investigate!"
                     )
-
-            if not route_tasks:
-                LOG.error(f"[prefix_consumer] No route tasks generated for update")
-                continue
-
-            log_msg = f"[prefix_consumer] Running all {len(route_tasks)} FIB operations for {fib_operation}"
-            if dry_run:
-                LOG.info(f"[DRY RUN] {log_msg}")
-                del route_tasks
-                continue
-
-            LOG.info(log_msg)
-            update_success = await asyncio.gather(*route_tasks)
-            if not all(update_success):
-                LOG.error(
-                    f"[prefix_consumer] There was a FIB operation failure. Please investigate!"
-                )
         except asyncio.CancelledError:
             raise
         except Exception as e:
