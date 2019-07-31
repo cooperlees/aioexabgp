@@ -66,6 +66,9 @@ class Fib:
     async def add_route(self, prefix: IPNetwork, next_hop: IPAddress) -> bool:
         raise NotImplementedError("Please implement in sub class")
 
+    async def check_for_route(self, prefix: IPNetwork, next_hop: IPAddress) -> bool:
+        raise NotImplementedError("Please implement in sub class")
+
     async def del_all_routes(self, next_hop: IPNetwork) -> bool:
         raise NotImplementedError("Please implement in sub class")
 
@@ -122,7 +125,7 @@ def get_fib(fib_name: str, config: Dict) -> Fib:
     raise ValueError(f"{fib_name} is not a valid option")
 
 
-async def prefix_consumer(
+async def prefix_consumer(  # noqa: C901
     prefix_queue: asyncio.Queue,
     fib_names: Sequence[str],
     config: Dict,
