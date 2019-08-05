@@ -81,11 +81,13 @@ class ExaBGPParser:
                             f"Peer {peer}: Sent {len(fib_prefixes)} prefixes to add to fibs"
                         )
                     elif operation == "withdraw":
+                        # TODO: More state to save (who is the next hop for this prefix)
+                        # For now, only expect Next Hop Self - Need to document this
                         for prefix in peers:
                             fib_prefixes.append(
                                 FibPrefix(
                                     ip_network(prefix["nlri"]),
-                                    None,
+                                    ip_address(peer),
                                     FibOperation.REMOVE_ROUTE,
                                 )
                             )

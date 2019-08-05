@@ -35,6 +35,7 @@ class Fib:
 
         Subclass to implement:
         - add_route(prefix, next_hop)
+        - check_for_route()
         - check_prefix_limit()
         - del_route(prefix)
     """
@@ -60,6 +61,7 @@ class Fib:
         )
 
     def is_default(self, prefix: IPNetwork) -> bool:
+        LOG.debug(f"Checking if {prefix} is a default")
         return prefix in self.DEFAULTS
 
     ## To be implemented in child classes + make mypy happy
@@ -69,10 +71,10 @@ class Fib:
     async def check_for_route(self, prefix: IPNetwork, next_hop: IPAddress) -> bool:
         raise NotImplementedError("Please implement in sub class")
 
-    async def del_all_routes(self, next_hop: IPNetwork) -> bool:
+    async def del_all_routes(self, next_hop: IPAddress) -> bool:
         raise NotImplementedError("Please implement in sub class")
 
-    async def del_route(self, prefix: IPNetwork) -> bool:
+    async def del_route(self, prefix: IPNetwork, next_hop: IPAddress) -> bool:
         raise NotImplementedError("Please implement in sub class")
 
 
@@ -93,6 +95,7 @@ class LinuxFib(Fib):
 
         return await run_cmd(
             (
+                "sudo",
                 self.IP_CMD,
                 f"-{prefix.version}",
                 "route",
@@ -104,16 +107,29 @@ class LinuxFib(Fib):
             self.timeout,
         )
 
-    async def del_all_routes(self, next_hop: IPNetwork) -> bool:
+    async def check_for_route(self, prefix: IPNetwork, next_hop: IPAddress) -> bool:
+        # TODO: Implement running ip -prefix.version route and check for prefix existing
+        return True
+
+    async def del_all_routes(self, next_hop: IPAddress) -> bool:
         LOG.error(f"[{self.FIB_NAME}] does not have del_all_routes implemented")
         # TODO: Implement removal of all routes for next_hop
         # return await run_cmd()
         return False
 
-    async def del_route(self, prefix: IPNetwork) -> bool:
+    async def del_route(self, prefix: IPNetwork, next_hop: IPAddress) -> bool:
         LOG.info(f"[{self.FIB_NAME}] Deleting route to {str(prefix)}")
         return await run_cmd(
-            (self.IP_CMD, f"-{prefix.version}", "route", "del", str(prefix)),
+            (
+                "sudo",
+                self.IP_CMD,
+                f"-{prefix.version}",
+                "route",
+                "del",
+                "default" if self.is_default(prefix) else str(prefix),
+                "via",
+                str(next_hop),
+            ),
             self.timeout,
         )
 
@@ -158,12 +174,14 @@ async def prefix_consumer(  # noqa: C901
                         LOG.debug(
                             f"[prefix_consumer] Removing {fib_operation.prefix} route via {fib_operation.next_hop} from {fib_name}"
                         )
-                        route_tasks.append(fib.del_route(fib_operation.next_hop))
+                        route_tasks.append(
+                            fib.del_route(fib_operation.prefix, fib_operation.next_hop)
+                        )
                     elif fib_operation.operation == FibOperation.REMOVE_ALL_ROUTES:
                         LOG.debug(
                             f"[prefix_consumer] Removing ALL routes via {fib_operation.next_hop} from {fib_name}"
                         )
-                        route_tasks.append(fib.del_route(fib_operation.next_hop))
+                        route_tasks.append(fib.del_all_routes(fib_operation.next_hop))
                     else:
                         LOG.error(
                             f"[prefix_consumer] {fib_operation.operation} operation is unhandled"

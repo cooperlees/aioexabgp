@@ -29,7 +29,8 @@ via printing ExaBGP commands to STDOUT.
 - Please refer to `aioexabgp.announcer.Announcer` for referenced class
 - `sample_announcer.json` is the configuration that drives `sample.py`
 
-`aioexabgp.announver.sample` has a runnable example. `-D` here is important for dry run. Steps to use:
+`aioexabgp.announver.sample` has a runnable example. `-D` here is important for dry run. This is a bad example that needs sudo to `/sbin/ip`.
+Steps to use:
 
 - Create a venv
 - cd to this repo base

@@ -121,5 +121,7 @@ EXABGP_WITHDRAW_JSON = {
     },
 }
 EXPECTED_WITHDRAW_REPONSE = [
-    FibPrefix(ip_network("70::/32"), None, FibOperation.REMOVE_ROUTE)
+    FibPrefix(
+        ip_network("70::/32"), ip_address("fc00:0:0:69::2"), FibOperation.REMOVE_ROUTE
+    )
 ]

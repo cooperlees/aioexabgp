@@ -13,8 +13,8 @@ ptr_params = {
         "aioexabgp/announcer/healthcheck.py": 60,
         "aioexabgp/exabgpparser.py": 85,
         "aioexabgp/pipes.py": 70,
-        "aioexabgp/utils.py": 90,
-        "TOTAL": 68,
+        "aioexabgp/utils.py": 100,
+        "TOTAL": 69,
     },
     "run_flake8": True,
     "run_black": True,
@@ -24,7 +24,7 @@ ptr_params = {
 
 setup(
     name="aioexabgp",
-    version="2019.7.30",
+    version="2019.8.5",
     description=("asyncio exabgp base API client"),
     packages=["aioexabgp", "aioexabgp.announcer", "aioexabgp.tests"],
     url="http://github.com/cooperlees/aioexabgp/",
