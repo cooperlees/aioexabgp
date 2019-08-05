@@ -14,7 +14,7 @@ ptr_params = {
         "aioexabgp/exabgpparser.py": 85,
         "aioexabgp/pipes.py": 70,
         "aioexabgp/utils.py": 100,
-        "TOTAL": 69,
+        "TOTAL": 68,
     },
     "run_flake8": True,
     "run_black": True,

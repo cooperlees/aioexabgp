@@ -159,6 +159,13 @@ class Announcer:
             while True:
                 LOG.debug(f"Waiting for API JSON via stdin")
                 bgp_msg = await self.nonblock_read()
+
+                # TODO: Evaluate if we should care and check if we get a done message
+                # Ignore done from API calls
+                if bgp_msg.strip() == "done":
+                    LOG.debug(f"Recieved a 'done' message from exabgp")
+                    continue
+
                 try:
                     bgp_json = await self.loop.run_in_executor(
                         self.executor, loads, bgp_msg
