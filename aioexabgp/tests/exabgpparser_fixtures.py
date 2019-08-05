@@ -63,6 +63,14 @@ EXABGP_UP_JSON = {
         "state": "up",
     },
 }
+FAKE_HEALTHY_PREFIXES = {ip_network("69::/32")}
+EXPECTED_UP_RESPONSE = [
+    FibPrefix(
+        list(FAKE_HEALTHY_PREFIXES)[0],
+        ip_address("fc00:0:0:69::2"),
+        FibOperation.ADD_ROUTE,
+    )
+]
 
 # Add learned routes to FIBs
 EXABGP_UPDATE_JSON = {

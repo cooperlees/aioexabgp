@@ -10,10 +10,13 @@ from aioexabgp.tests.exabgpparser_fixtures import (
     EXABGP_CONNECTED_JSON,
     EXABGP_DOWN_JSON,
     EXPECTED_DOWN_RESPONSE,
+    EXABGP_UP_JSON,
+    EXPECTED_UP_RESPONSE,
     EXABGP_UPDATE_JSON,
     EXPECTED_UPDATE_REPONSE,
     EXABGP_WITHDRAW_JSON,
     EXPECTED_WITHDRAW_REPONSE,
+    FAKE_HEALTHY_PREFIXES,
 )
 
 
@@ -38,6 +41,15 @@ class ExabgpParserTests(unittest.TestCase):
             self.loop.run_until_complete(self.ebp.parse(EXABGP_DOWN_JSON)),
         )
         self.assertEqual(1, mock_error.call_count)
+
+    def test_parse_state_up(self) -> None:
+        self.assertEqual(
+            EXPECTED_UP_RESPONSE,
+            self.loop.run_until_complete(
+                self.ebp.parse(EXABGP_UP_JSON, FAKE_HEALTHY_PREFIXES)
+            ),
+        )
+        self.assertFalse(self.loop.run_until_complete(self.ebp.parse(EXABGP_UP_JSON)))
 
     def test_parse_update_announce(self) -> None:
         self.assertEqual(

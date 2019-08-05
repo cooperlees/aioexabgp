@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 
 import logging
-from ipaddress import ip_address, ip_network
+from ipaddress import IPv4Network, IPv6Network, ip_address, ip_network
 from json import dumps
-from typing import Dict, List, Sequence
+from typing import Dict, List, Optional, Set, Sequence, Union
 
 from aioexabgp.announcer.fibs import FibOperation, FibPrefix
 
 
 # TODO: Plumb up to config
 DEFAULT_FAMALIES = ["ipv4 unicast", "ipv6 unicast"]
+IPNetwork = Union[IPv4Network, IPv6Network]
 LOG = logging.getLogger(__name__)
 
 
@@ -18,7 +19,9 @@ class ExaBGPParser:
 
     SUPPORTED_API_VERSION = "4.0.1"
 
-    async def parse(self, exa_json: Dict) -> List[FibPrefix]:
+    async def parse(
+        self, exa_json: Dict, advertise_prefixes: Optional[Set[IPNetwork]] = None
+    ) -> List[FibPrefix]:
         if exa_json["exabgp"] != self.SUPPORTED_API_VERSION:
             raise ValueError(
                 f"Exabgp JSON version has changed from know tested version. Investigate"
@@ -40,6 +43,15 @@ class ExaBGPParser:
                         ip_address(peer),
                         FibOperation.REMOVE_ALL_ROUTES,
                     )
+                ]
+            elif state.lower() == "up":
+                if not advertise_prefixes:
+                    LOG.debug(f"No prefixes to advertise to {peer}")
+                    return []
+
+                return [
+                    FibPrefix(prefix, ip_address(peer), FibOperation.ADD_ROUTE)
+                    for prefix in advertise_prefixes
                 ]
             else:
                 LOG.info(f"Peer {peer}: BGP has gone to '{state}' state.")

@@ -9,7 +9,7 @@ from ipaddress import IPv4Address, IPv6Address, IPv4Network, IPv6Network
 from json import JSONDecodeError, loads
 from sys import stdin
 from time import time
-from typing import Awaitable, Dict, List, Optional, Sequence, TextIO, Union
+from typing import Awaitable, Dict, List, Optional, Set, Sequence, TextIO, Union
 
 from aioexabgp.exabgpparser import ExaBGPParser
 from .fibs import prefix_consumer
@@ -44,15 +44,25 @@ class Announcer:
                 max_workers=8, thread_name_prefix="AnnouncerDefault"
             )
 
+        # State table to add all healthy prefixes in so
+        # we know what to reannounce # when a new peer is established
+        self.healthy_prefixes: Set[IPNetwork] = set()
+
+        # Lock to ensure we're only printing one command at a time
+        # GIL will prob ensure this, but lets explicitly lock
+        self.print_lock = asyncio.Lock()
+
     async def nonblock_print(self, output: str) -> bool:
-        """ Wrap print so we can timeout """
+        """ Lock for one print @ a time + wrap print so we
+            don't block and can timeout """
         try:
-            await asyncio.wait_for(
-                self.loop.run_in_executor(
-                    self.executor, partial(print, output, flush=True)
-                ),
-                self.print_timeout,
-            )
+            async with self.print_lock:
+                await asyncio.wait_for(
+                    self.loop.run_in_executor(
+                        self.executor, partial(print, output, flush=True)
+                    ),
+                    self.print_timeout,
+                )
         except asyncio.TimeoutError:
             LOG.error(f"Timeout: Unable to print '{output}'")
             return False
@@ -122,7 +132,7 @@ class Announcer:
                     my_results
                 ):
                     LOG.info(f"Advertising {prefix} prefix")
-                    advertise_routes.append(prefix)
+                    self.healthy_prefixes.add(prefix)
                 else:
                     LOG.info(f"Withdrawing {prefix} prefix")
                     withdraw_routes.append(prefix)
@@ -131,6 +141,7 @@ class Announcer:
 
             if advertise_routes:
                 await self.add_routes(advertise_routes)
+                self.healthy_prefixes = set(advertise_routes)
             if withdraw_routes:
                 await self.withdraw_routes(withdraw_routes)
 
@@ -179,13 +190,13 @@ class Announcer:
                     LOG.debug(f"Ignoring non neighbor JSON: {bgp_json}")
                     continue
 
-                fib_operation = await ejp.parse(bgp_json)
-                if not fib_operation:
-                    LOG.error(f"Unable to parse API JSON: {bgp_json}")
+                fib_operations = await ejp.parse(bgp_json, self.healthy_prefixes)
+                if not fib_operations:
+                    LOG.error(f"Didn't act on API JSON: {bgp_json}")
                     continue
 
-                LOG.debug(f"Adding {fib_operation} to learn_queue")
-                await self.learn_queue.put(fib_operation)
+                LOG.debug(f"Adding {fib_operations} to learn_queue")
+                await self.learn_queue.put(fib_operations)
         except asyncio.CancelledError:
             fib_consumer.cancel()
             raise
