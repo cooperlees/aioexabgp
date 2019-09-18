@@ -16,7 +16,7 @@ install:
   - pip install ptr black coverage flake8 mypy
 
 script:
-    - ptr --venv $VIRTUAL_ENV
+    - ptr --venv $VIRTUAL_ENV --error-on-warnings
 
 notifications:
   irc:
