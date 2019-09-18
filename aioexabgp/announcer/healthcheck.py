@@ -5,8 +5,7 @@ from ipaddress import IPv4Network, IPv6Network, ip_address, ip_network
 from platform import system
 from typing import Dict, List, Union
 
-# TODO: Work out why mypy can't find utils
-from aioexabgp.utils import run_cmd  # type: ignore
+from aioexabgp.utils import run_cmd
 
 
 IPNetwork = Union[IPv4Network, IPv6Network]
@@ -42,7 +41,10 @@ class PingChecker(HealthChecker):
         self.wait = config.get("ping_wait", int(self.timeout) - 1)
 
     def __str__(self):
-        return f"PingChecker - Target: {self.target_ip} Count: {self.count} Timeout: {self.timeout}"
+        return (
+            f"PingChecker - Target: {self.target_ip} Count: {self.count}"
+            + f" Timeout: {self.timeout}"
+        )
 
     async def do_ping(self) -> bool:
         cmd = ["ping6"] if self.target_ip.version == 6 else ["ping"]

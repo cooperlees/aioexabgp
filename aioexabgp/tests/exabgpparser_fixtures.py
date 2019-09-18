@@ -38,7 +38,10 @@ EXABGP_DOWN_JSON = {
         "address": {"local": "fc00:0:0:69::1", "peer": "fc00:0:0:69::2"},
         "asn": {"local": 65069, "peer": 65070},
         "state": "down",
-        "reason": "peer reset, message (notification sent (4,0)) error(Hold timer expired / Unspecific)",
+        "reason": (
+            "peer reset, message (notification sent (4,0)) error(Hold timer "
+            + "expired / Unspecific)",
+        ),
     },
 }
 EXPECTED_DOWN_RESPONSE = [
