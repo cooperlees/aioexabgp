@@ -70,12 +70,12 @@ def main() -> int:
     announcer = Announcer(config, advertise_prefixes, dry_run=args.dry_run)
 
     loop = asyncio.get_event_loop()
-    cordinator_task = loop.create_task(announcer.coordinator())
+    coordinator_task = loop.create_task(announcer.coordinator())
     for s in (signal.SIGINT, signal.SIGTERM):
-        loop.add_signal_handler(s, lambda: cordinator_task.cancel())
+        loop.add_signal_handler(s, lambda: coordinator_task.cancel())
 
     try:
-        loop.run_until_complete(cordinator_task)
+        loop.run_until_complete(coordinator_task)
     finally:
         loop.close()
 

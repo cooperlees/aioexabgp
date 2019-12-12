@@ -9,7 +9,7 @@ from aioexabgp.announcer import Announcer
 from aioexabgp.announcer.healthcheck import gen_advertise_prefixes
 
 # TODO: EXABGP_ANNOUNCE_JSON, WITHDRAW_JSON
-from aioexabgp.tests.announcer_fixtures import ANNOUNCER_CONFIG
+from aioexabgp.tests.announcer_fixtures import ANNOUNCER_CONFIG, NEXT_HOP
 
 
 class AnnouncerTests(unittest.TestCase):
@@ -18,9 +18,18 @@ class AnnouncerTests(unittest.TestCase):
         self.aa = Announcer(ANNOUNCER_CONFIG, advertise_prefixes)
         self.loop = asyncio.get_event_loop()
 
+    def test_validate_next_hop(self) -> None:
+        self.assertEqual("self", self.aa.validate_next_hop("sELf"))
+        self.assertEqual(
+            "69::1",
+            self.aa.validate_next_hop("0069:0000:0000:0000:0000:0000:0000:0001"),
+        )
+        with self.assertRaises(ValueError):
+            self.aa.validate_next_hop("cooper69")
+
     def test_add_routes(self) -> None:
         prefix = sorted(self.aa.advertise_prefixes.keys()).pop()
-        expected_output = f"announce route {prefix} next-hop self"
+        expected_output = f"announce route {prefix} next-hop {NEXT_HOP}"
         with StringIO() as buf, redirect_stdout(buf):
             added_count = self.loop.run_until_complete(self.aa.add_routes([prefix]))
             output = buf.getvalue().strip()
@@ -29,7 +38,7 @@ class AnnouncerTests(unittest.TestCase):
 
     def test_withdraw_routes(self) -> None:
         prefix = sorted(self.aa.advertise_prefixes.keys()).pop()
-        expected_output = f"withdraw route {prefix}"
+        expected_output = f"withdraw route {prefix} next-hop {NEXT_HOP}"
         with StringIO() as buf, redirect_stdout(buf):
             added_count = self.loop.run_until_complete(
                 self.aa.withdraw_routes([prefix])
