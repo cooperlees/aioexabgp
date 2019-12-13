@@ -5,7 +5,7 @@ import asyncio
 import logging
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from functools import partial
-from ipaddress import IPv4Address, IPv6Address, IPv4Network, IPv6Network
+from ipaddress import IPv4Address, IPv6Address, IPv4Network, IPv6Network, ip_address
 from json import JSONDecodeError, loads
 from sys import stdin
 from time import time
@@ -36,6 +36,9 @@ class Announcer:
         self.learn_fibs = config["learn"].get("fibs", [])
         self.learn_queue: asyncio.Queue = asyncio.Queue()
         self.loop = asyncio.get_event_loop()
+        self.next_hop = self.validate_next_hop(
+            config["advertise"].get("next_hop", "self")
+        )
         self.print_timeout = print_timeout
 
         self.executor = executor
@@ -73,12 +76,18 @@ class Announcer:
         stdin_line = await self.loop.run_in_executor(self.executor, input.readline)
         return stdin_line.strip()
 
-    async def add_routes(
-        self, prefixes: Sequence[IPNetwork], *, next_hop: str = "self"
-    ) -> int:
+    def validate_next_hop(self, next_hop: str) -> str:
+        """ Ensure next hop can ONLY be self of a valid IP Address """
+        if next_hop.lower() == "self":
+            return next_hop.lower()
+
+        ip_next_hop = ip_address(next_hop)
+        return ip_next_hop.compressed
+
+    async def add_routes(self, prefixes: Sequence[IPNetwork]) -> int:
         success = 0
         for prefix in prefixes:
-            output = f"announce route {prefix} next-hop {next_hop}"
+            output = f"announce route {prefix} next-hop {self.next_hop}"
             if not await self.nonblock_print(output):
                 continue
             success += 1
@@ -87,7 +96,7 @@ class Announcer:
     async def withdraw_routes(self, prefixes: Sequence[IPNetwork]) -> int:
         success = 0
         for prefix in prefixes:
-            output = f"withdraw route {prefix}"
+            output = f"withdraw route {prefix} next-hop {self.next_hop}"
             if not await self.nonblock_print(output):
                 continue
             success += 1

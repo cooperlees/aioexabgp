@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 
 
+NEXT_HOP = "2000:69::1"
 ANNOUNCER_CONFIG = {
-    "conf_version": "0.0.1",
+    "conf_version": "0.0.2",
     "advertise": {
         "interval": 5.0,
+        "next_hop": NEXT_HOP,
         "prefixes": {
             "69::/32": [
                 {
