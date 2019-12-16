@@ -169,8 +169,8 @@ async def prefix_consumer(
 async def fib_operation_runner(
     fibs: Dict[str, Fib], fib_operations: Sequence[FibPrefix], dry_run: bool
 ) -> None:
-    route_tasks: List[Awaitable] = []
     for fib_operation in fib_operations:
+        route_tasks: List[Awaitable] = []
         if not fib_operation.prefix or not fib_operation.next_hop:
             LOG.error(f"Invalid Fib Operation. Ivalid data: {fib_operation}")
             continue
@@ -214,7 +214,6 @@ async def fib_operation_runner(
         )
         if dry_run:
             LOG.info(f"[DRY RUN] {log_msg}")
-            del route_tasks
             continue
 
         LOG.info(log_msg)
