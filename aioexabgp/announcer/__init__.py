@@ -60,6 +60,7 @@ class Announcer:
             don't block and can timeout """
         try:
             async with self.print_lock:
+                LOG.debug(f"Attempting to print '{output}' to STDOUT")
                 await asyncio.wait_for(
                     self.loop.run_in_executor(
                         self.executor, partial(print, output, flush=True)
@@ -88,8 +89,10 @@ class Announcer:
         success = 0
         for prefix in prefixes:
             output = f"announce route {prefix} next-hop {self.next_hop}"
-            if not await self.nonblock_print(output):
+            print_success = await self.nonblock_print(output)
+            if not print_success:
                 continue
+            LOG.info(f"Advertising {prefix} prefix: {output}")
             success += 1
         return success
 
@@ -97,8 +100,10 @@ class Announcer:
         success = 0
         for prefix in prefixes:
             output = f"withdraw route {prefix} next-hop {self.next_hop}"
-            if not await self.nonblock_print(output):
+            print_success = await self.nonblock_print(output)
+            if not print_success:
                 continue
+            LOG.info(f"Withdrawing {prefix} prefix: {output}")
             success += 1
         return success
 
@@ -140,19 +145,21 @@ class Announcer:
                 if map(lambda r: isinstance(r, Exception), my_results) and all(
                     my_results
                 ):
-                    LOG.info(f"Advertising {prefix} prefix")
                     self.healthy_prefixes.add(prefix)
                 else:
-                    LOG.info(f"Withdrawing {prefix} prefix")
                     withdraw_routes.append(prefix)
 
                 start_at += 1
 
             if advertise_routes:
-                await self.add_routes(advertise_routes)
-                self.healthy_prefixes = set(advertise_routes)
+                if not await self.add_routes(advertise_routes):
+                    LOG.error(f"Failed to announce {advertise_routes}")
+                    self.healthy_prefixes = set()
+                else:
+                    self.healthy_prefixes = set(advertise_routes)
             if withdraw_routes:
-                await self.withdraw_routes(withdraw_routes)
+                if not await self.withdraw_routes(withdraw_routes):
+                    LOG.error(f"Failed to withdraw {withdraw_routes}")
 
             run_time = time() - start_time
             sleep_time = interval - run_time
