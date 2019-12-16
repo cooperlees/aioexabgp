@@ -145,7 +145,7 @@ class Announcer:
                 if map(lambda r: isinstance(r, Exception), my_results) and all(
                     my_results
                 ):
-                    self.healthy_prefixes.add(prefix)
+                    advertise_routes.append(prefix)
                 else:
                     withdraw_routes.append(prefix)
 
@@ -160,6 +160,8 @@ class Announcer:
             if withdraw_routes:
                 if not await self.withdraw_routes(withdraw_routes):
                     LOG.error(f"Failed to withdraw {withdraw_routes}")
+                if not advertise_routes:
+                    self.healthy_prefixes = set()
 
             run_time = time() - start_time
             sleep_time = interval - run_time
