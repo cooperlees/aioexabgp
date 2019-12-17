@@ -44,9 +44,13 @@ class Fib:
     DEFAULT_v6_route = ip_network("::/0")
     DEFAULTS = (DEFAULT_v4_route, DEFAULT_v6_route)
     FIB_NAME = "Default"
+    IPV4_LL_PREFIX = ip_network("169.254.0.0/16")
+    IPV6_LL_PREFIX = ip_network("fe80::/10")
+    LINKLOCALS = {4: IPV4_LL_PREFIX, 6: IPV6_LL_PREFIX}
 
     def __init__(self, config: Dict, timeout: float = 2.0) -> None:
         self.default_allowed = config["learn"].get("allow_default", True)
+        self.default_allowed_ll = config["learn"].get("allow_default_ll", False)
         self.prefix_limit = config["learn"].get("prefix_limit", 0)
         self.timeout = timeout
 
@@ -63,6 +67,12 @@ class Fib:
     def is_default(self, prefix: IPNetwork) -> bool:
         LOG.debug(f"Checking if {prefix} is a default")
         return prefix in self.DEFAULTS
+
+    def is_link_local(self, prefix: Union[IPAddress, IPNetwork]) -> bool:
+        LOG.debug(f"Checking if {prefix} is link local")
+        if isinstance(prefix, (IPv4Address, IPv6Address)):
+            return prefix in self.LINKLOCALS[prefix.version]
+        return self.LINKLOCALS[prefix.version].overlaps(prefix)
 
     ## To be implemented in child classes + make mypy happy
     async def add_route(self, prefix: IPNetwork, next_hop: IPAddress) -> bool:

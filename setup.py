@@ -9,7 +9,7 @@ ptr_params = {
     "test_suite_timeout": 300,
     "required_coverage": {
         "aioexabgp/announcer/__init__.py": 45,
-        "aioexabgp/announcer/fibs.py": 45,
+        "aioexabgp/announcer/fibs.py": 50,
         "aioexabgp/announcer/healthcheck.py": 60,
         "aioexabgp/exabgpparser.py": 85,
         "aioexabgp/pipes.py": 70,
