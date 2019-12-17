@@ -1,7 +1,7 @@
 #!/usr/bin/env python3.7
 
 import unittest
-from ipaddress import ip_network
+from ipaddress import ip_address, ip_network
 
 from aioexabgp.announcer.fibs import Fib, get_fib
 
@@ -18,6 +18,18 @@ class FibsTests(unittest.TestCase):
         self.assertTrue(self.afib.is_default(ip_network("::/0")))
         self.assertFalse(self.afib.is_default(ip_network("69::/32")))
         self.assertFalse(self.afib.is_default(None))
+
+    def test_is_link_local(self) -> None:
+        # v6
+        self.assertTrue(self.afib.is_link_local(ip_address("fe80::69")))
+        self.assertTrue(self.afib.is_link_local(ip_network("fe80::/64")))
+        self.assertFalse(self.afib.is_link_local(ip_address("69::69")))
+        self.assertFalse(self.afib.is_link_local(ip_network("69::/64")))
+        # v4
+        self.assertTrue(self.afib.is_link_local(ip_address("169.254.69.69")))
+        self.assertTrue(self.afib.is_link_local(ip_network("169.254.69.0/24")))
+        self.assertFalse(self.afib.is_link_local(ip_address("6.9.6.9")))
+        self.assertFalse(self.afib.is_link_local(ip_network("6.9.6.0/24")))
 
     def test_get_fib(self) -> None:
         # Here we on purpose do not use FAKE_CONFIG
