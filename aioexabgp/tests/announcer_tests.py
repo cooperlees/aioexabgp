@@ -77,3 +77,11 @@ class AnnouncerTests(unittest.TestCase):
             self.aa.remove_internal_networks(potential_networks),
             [potential_networks[-1], potential_networks[-2]],
         )
+
+    def test_ensure_default_remove_internal_networks(self) -> None:
+        potential_networks = [
+            FibPrefix(ip_network("::/0"), None, FibOperation.ADD_ROUTE)
+        ]
+        self.assertEqual(
+            self.aa.remove_internal_networks(potential_networks), potential_networks
+        )

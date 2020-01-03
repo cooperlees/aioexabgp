@@ -23,7 +23,7 @@ ANNOUNCER_CONFIG = {
         },
     },
     "learn": {
-        "allow_default": False,
+        "allow_default": True,
         "fibs": ["Linux"],
         "filter_prefixes": [],
         "prefix_limit": 0,
