@@ -66,6 +66,7 @@ class AnnouncerTests(unittest.TestCase):
 
     def test_remove_internal_networks(self) -> None:
         potential_networks = [
+            FibPrefix(ip_network("6.9.6.0/24"), None, FibOperation.ADD_ROUTE),
             FibPrefix(ip_network("69::/32"), None, FibOperation.ADD_ROUTE),
             FibPrefix(ip_network("69::/64"), None, FibOperation.ADD_ROUTE),
             FibPrefix(ip_network("14:69::/64"), None, FibOperation.ADD_ROUTE),

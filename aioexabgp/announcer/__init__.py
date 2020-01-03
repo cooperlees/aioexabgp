@@ -78,7 +78,7 @@ class Announcer:
         return stdin_line.strip()
 
     def remove_internal_networks(
-        self, bgp_prefixes: List[FibPrefix]
+        self, bgp_prefixes: List[FibPrefix], ip_version: int = 6
     ) -> List[FibPrefix]:
         """ Check if exabgp has told us about an internal summary
             If so remove it from being internally advertised to our FIBs"""
@@ -88,6 +88,12 @@ class Announcer:
         current_advertise_networks = set(self.advertise_prefixes.keys())
         valid_redist_networks: Set[FibPrefix] = set()
         for aprefix in bgp_prefixes:
+            if aprefix.prefix.version != ip_version:
+                LOG.error(
+                    f"{aprefix} was passed. We only accept IP version {ip_version}"
+                )
+                continue
+
             if aprefix.prefix in current_advertise_networks:
                 LOG.debug(
                     f"Not advertising {aprefix} to a FIB. "
@@ -97,8 +103,9 @@ class Announcer:
 
             is_a_subnet = False
             for advertise_network in current_advertise_networks:
-                # mypy complains about "_BaseNetwork" has incompatible type "Union[IPv4Network, IPv6Network]"
-                # Both IPv4Network and IPv6Network .overlaps() ??
+                # `mypy` complains about "_BaseNetwork" has incompatible type "Union[IPv4Network, IPv6Network]"
+                # Typeshed even stats overlaps() on _BaseNetwork
+                # With the isinstance check above I feel this is safe to merge: Follow Up Issue: #6
                 if advertise_network.overlaps(aprefix.prefix):  # type: ignore
                     LOG.debug(
                         f"{aprefix} is a subnet of {advertise_network}. "
