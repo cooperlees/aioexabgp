@@ -3,9 +3,11 @@
 import asyncio
 import unittest
 from contextlib import redirect_stdout
+from ipaddress import ip_network
 from io import StringIO
 
 from aioexabgp.announcer import Announcer
+from aioexabgp.announcer.fibs import FibOperation, FibPrefix
 from aioexabgp.announcer.healthcheck import gen_advertise_prefixes
 
 # TODO: EXABGP_ANNOUNCE_JSON, WITHDRAW_JSON
@@ -60,4 +62,17 @@ class AnnouncerTests(unittest.TestCase):
         self.assertEqual(
             self.loop.run_until_complete(self.aa.nonblock_read(fake_stdin)),
             line1.strip(),
+        )
+
+    def test_remove_internal_networks(self) -> None:
+        potential_networks = [
+            FibPrefix(ip_network("69::/32"), None, FibOperation.ADD_ROUTE),
+            FibPrefix(ip_network("69::/64"), None, FibOperation.ADD_ROUTE),
+            FibPrefix(ip_network("14:69::/64"), None, FibOperation.ADD_ROUTE),
+            FibPrefix(ip_network("11:69::/64"), None, FibOperation.ADD_ROUTE),
+        ]
+        # Making list in specific way to ensure return is sorted()
+        self.assertEqual(
+            self.aa.remove_internal_networks(potential_networks),
+            [potential_networks[-1], potential_networks[-2]],
         )

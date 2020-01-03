@@ -12,7 +12,7 @@ from time import time
 from typing import Awaitable, Dict, List, Optional, Set, Sequence, TextIO, Union
 
 from aioexabgp.exabgpparser import ExaBGPParser
-from .fibs import prefix_consumer
+from .fibs import FibPrefix, prefix_consumer
 from .healthcheck import HealthChecker
 
 IPNetwork = Union[IPv4Network, IPv6Network]
@@ -76,6 +76,41 @@ class Announcer:
         """ Wrap stdin.read() so we can wait for input non-blocking other coroutines """
         stdin_line = await self.loop.run_in_executor(self.executor, input.readline)
         return stdin_line.strip()
+
+    def remove_internal_networks(
+        self, bgp_prefixes: List[FibPrefix]
+    ) -> List[FibPrefix]:
+        """ Check if exabgp has told us about an internal summary
+            If so remove it from being internally advertised to our FIBs"""
+        if not bgp_prefixes:
+            return bgp_prefixes
+
+        current_advertise_networks = set(self.advertise_prefixes.keys())
+        valid_redist_networks: Set[FibPrefix] = set()
+        for aprefix in bgp_prefixes:
+            if aprefix.prefix in current_advertise_networks:
+                LOG.debug(
+                    f"Not advertising {aprefix} to a FIB. "
+                    + "It's a summary we advertise over BGP"
+                )
+                continue
+
+            is_a_subnet = False
+            for advertise_network in current_advertise_networks:
+                # mypy complains about "_BaseNetwork" has incompatible type "Union[IPv4Network, IPv6Network]"
+                # Both IPv4Network and IPv6Network .overlaps() ??
+                if advertise_network.overlaps(aprefix.prefix):  # type: ignore
+                    LOG.debug(
+                        f"{aprefix} is a subnet of {advertise_network}. "
+                        + "Not advertising to a FIB"
+                    )
+                    is_a_subnet = True
+                    break
+
+            if not is_a_subnet:
+                valid_redist_networks.add(aprefix)
+
+        return sorted(valid_redist_networks)
 
     def validate_next_hop(self, next_hop: str) -> str:
         """ Ensure next hop can ONLY be self of a valid IP Address """
@@ -210,7 +245,16 @@ class Announcer:
 
                 fib_operations = await ejp.parse(bgp_json, self.healthy_prefixes)
                 if not fib_operations:
-                    LOG.error(f"Didn't act on API JSON: {bgp_json}")
+                    LOG.error(
+                        f"Didn't parse a valid fib operation from API JSON: {bgp_json}"
+                    )
+                    continue
+
+                fib_operations = self.remove_internal_networks(fib_operations)
+                if not fib_operations:
+                    LOG.debug(
+                        f"Did not get an external prefix from API JSON: {bgp_json}"
+                    )
                     continue
 
                 LOG.debug(f"Adding {fib_operations} to learn_queue")
