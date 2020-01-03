@@ -5,7 +5,14 @@ import asyncio
 import logging
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from functools import partial
-from ipaddress import IPv4Address, IPv6Address, IPv4Network, IPv6Network, ip_address
+from ipaddress import (
+    IPv4Address,
+    IPv6Address,
+    IPv4Network,
+    IPv6Network,
+    ip_address,
+    ip_network,
+)
 from json import JSONDecodeError, loads
 from sys import stdin
 from time import time
@@ -86,12 +93,19 @@ class Announcer:
             return bgp_prefixes
 
         current_advertise_networks = set(self.advertise_prefixes.keys())
+        default_prefix = ip_network("::/0")
         valid_redist_networks: Set[FibPrefix] = set()
+
         for aprefix in bgp_prefixes:
             if aprefix.prefix.version != ip_version:
                 LOG.error(
                     f"{aprefix} was passed. We only accept IP version {ip_version}"
                 )
+                continue
+
+            allow_default = self.config["learn"].get("allow_default", False)
+            if allow_default and aprefix.prefix == default_prefix:
+                valid_redist_networks.add(aprefix)
                 continue
 
             if aprefix.prefix in current_advertise_networks:
