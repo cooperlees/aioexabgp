@@ -62,6 +62,23 @@ class Announcer:
         # GIL will prob ensure this, but lets explicitly lock
         self.print_lock = asyncio.Lock()
 
+    def _cleanup_executor(self, wait: bool = False) -> None:
+        if not self.executor:
+            LOG.debug(f"Not cleaning up executor {self.executor}")
+            return
+
+        # mypy thinks "ThreadPoolExecutor" has no attribute "_threads"
+        if isinstance(self.executor, ThreadPoolExecutor):
+            for thread in self.executor._threads:  # type: ignore
+                try:
+                    thread._tstate_lock.release()
+                except Exception as e:
+                    LOG.debug(f"Problem with releasing a thread: {e}")
+                    pass
+
+        LOG.info("Shutting down executor pool")
+        self.executor.shutdown(wait=wait)
+
     async def nonblock_print(self, output: str) -> bool:
         """ Lock for one print @ a time + wrap print so we
             don't block and can timeout """
@@ -173,8 +190,7 @@ class Announcer:
         try:
             await asyncio.gather(*route_coros)
         except asyncio.CancelledError:
-            if self.executor:
-                self.executor.shutdown(wait=False)
+            self._cleanup_executor()
             raise
 
     async def advertise(self) -> None:
