@@ -5,6 +5,7 @@ import unittest
 from contextlib import redirect_stdout
 from ipaddress import ip_network
 from io import StringIO
+from unittest.mock import patch
 
 from aioexabgp.announcer import Announcer
 from aioexabgp.announcer.fibs import FibOperation, FibPrefix
@@ -19,6 +20,18 @@ class AnnouncerTests(unittest.TestCase):
         advertise_prefixes = gen_advertise_prefixes(ANNOUNCER_CONFIG)
         self.aa = Announcer(ANNOUNCER_CONFIG, advertise_prefixes)
         self.loop = asyncio.get_event_loop()
+
+    def test_cleanup_executor(self) -> None:
+        aa = Announcer(ANNOUNCER_CONFIG, gen_advertise_prefixes(ANNOUNCER_CONFIG))
+        with patch("aioexabgp.announcer.LOG.info") as mock_log:
+            aa._cleanup_executor(wait=True)
+            self.assertTrue(mock_log.called)
+
+        # Test falsey executor
+        aa.executor = None
+        with patch("aioexabgp.announcer.LOG.debug") as mock_log:
+            aa._cleanup_executor()
+            self.assertTrue(mock_log.called)
 
     def test_validate_next_hop(self) -> None:
         self.assertEqual("self", self.aa.validate_next_hop("sELf"))
