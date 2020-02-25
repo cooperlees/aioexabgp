@@ -64,7 +64,7 @@ class Announcer:
 
     def _cleanup_executor(self, wait: bool = False) -> None:
         if not self.executor:
-            LOG.debug(f"Not cleaning up executor {self.executor}")
+            LOG.debug(f"Executor is falsey. Not cleaning up executor {self.executor}")
             return
 
         # mypy thinks "ThreadPoolExecutor" has no attribute "_threads"
@@ -180,6 +180,21 @@ class Announcer:
             success += 1
         return success
 
+    async def withdraw_all_routes(self) -> int:
+        """ Withdraw all routes in self.advertise_prefixes """
+        all_prefixes = sorted(self.advertise_prefixes.keys())
+        if not all_prefixes:
+            return 0
+
+        LOG.info(f"Sending withdraws for all {len(all_prefixes)} prefixes")
+        successful_count = await self.withdraw_routes(all_prefixes)
+        if successful_count != len(all_prefixes):
+            LOG.error(
+                "Did not sucessfully send withdraws for all prefixes "
+                + f"({successful_count} / {len(all_prefixes)})"
+            )
+        return successful_count
+
     async def coordinator(self) -> None:
         LOG.info(f"Monitoring and announcing {len(self.advertise_prefixes)} prefixes")
         route_coros = [self.advertise()]
@@ -190,6 +205,9 @@ class Announcer:
         try:
             await asyncio.gather(*route_coros)
         except asyncio.CancelledError:
+            if self.config["advertise"].get("withdraw_on_exit", False):
+                # Lets cleanly tell peer(s) to withdraw as we're going down if set
+                await self.withdraw_all_routes()
             self._cleanup_executor()
             raise
 

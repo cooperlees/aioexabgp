@@ -62,6 +62,19 @@ class AnnouncerTests(unittest.TestCase):
         self.assertEqual(added_count, 1)
         self.assertEqual(expected_output, output)
 
+    def test_withdraw_all_routes(self) -> None:
+        expected_output = (
+            "withdraw route 69::/32 next-hop 2000:69::1\n"
+            + "withdraw route 70::/32 next-hop 2000:69::1"
+        )
+        with StringIO() as buf, redirect_stdout(buf):
+            successful_withdraws = self.loop.run_until_complete(
+                self.aa.withdraw_all_routes()
+            )
+            output = buf.getvalue().strip()
+        self.assertEqual(successful_withdraws, 2)
+        self.assertEqual(expected_output, output)
+
     def test_nonblock_print(self) -> None:
         expected_output = "Hello World!"
         with StringIO() as buf, redirect_stdout(buf):

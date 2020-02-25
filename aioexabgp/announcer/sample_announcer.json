@@ -24,7 +24,8 @@
                     }
                 }
             ]
-        }
+        },
+        "withdraw_on_exit": false
     },
     "learn": {
         "allow_default": false,

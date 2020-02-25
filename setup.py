@@ -24,7 +24,7 @@ ptr_params = {
 
 setup(
     name="aioexabgp",
-    version="2020.1.14",
+    version="2020.2.24",
     description=("asyncio exabgp base API client"),
     packages=["aioexabgp", "aioexabgp.announcer", "aioexabgp.tests"],
     url="http://github.com/cooperlees/aioexabgp/",
