@@ -90,3 +90,17 @@ class FibsTests(unittest.TestCase):
         self.assertEqual(adds, 0)
         self.assertEqual(dels, 0)
         self.assertFalse(BGP_LEARNT_PREFIXES)
+
+        # Add and remove all
+        adds, dels = _update_learnt_routes(gen_fib_operations(FibOperation.ADD_ROUTE))
+        adds, dels = _update_learnt_routes(
+            [
+                FibPrefix(
+                    ip_network("69::/64"),
+                    ip_address("2469::1"),
+                    FibOperation.REMOVE_ALL_ROUTES,
+                )
+            ]
+        )
+        self.assertEqual(dels, 2)
+        self.assertFalse(BGP_LEARNT_PREFIXES)

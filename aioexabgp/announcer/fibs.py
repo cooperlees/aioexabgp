@@ -158,7 +158,9 @@ class LinuxFib(Fib):
         )
 
 
-def _update_learnt_routes(fib_operations: Sequence[FibPrefix]) -> Tuple[int, int]:
+def _update_learnt_routes(  # noqa: C901
+    fib_operations: Sequence[FibPrefix],
+) -> Tuple[int, int]:
     """ Take fib operations and keep BGP_LEARNT_PREFIXES in sync """
     global BGP_LEARNT_PREFIXES
     add_count = 0
@@ -203,6 +205,17 @@ def _update_learnt_routes(fib_operations: Sequence[FibPrefix]) -> Tuple[int, int
                 del_count += 1
             else:
                 LOG.error(f"[update_learnt_rotues] No deletion took place for {fib_op}")
+        elif fib_op.operation == FibOperation.REMOVE_ALL_ROUTES:
+            del_count = del_count + len(BGP_LEARNT_PREFIXES)
+            # Had to make copy of keys and delete prefixes 1 by 1 for unittests to pass
+            for key in list(BGP_LEARNT_PREFIXES.keys()):
+                del BGP_LEARNT_PREFIXES[key]
+            LOG.info(
+                f"[update_learnt_rotues] Resettting BGP Learnt Prefixes due to "
+                + "REMOVE_ALL_ROUTES being received"
+            )
+        else:
+            LOG.error(f"[update_learnt_rotues] Unknown operation: {fib_op} - Ignoring")
 
     LOG.info(f"[update_learnt_rotues] Completed {add_count} adds / {del_count} removes")
     return (add_count, del_count)
