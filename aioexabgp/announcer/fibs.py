@@ -5,7 +5,17 @@ import logging
 from enum import Enum
 from ipaddress import IPv4Address, IPv4Network, IPv6Address, IPv6Network, ip_network
 from platform import system
-from typing import Awaitable, Dict, List, NamedTuple, Optional, Sequence, Union
+from typing import (
+    Awaitable,
+    Dict,
+    List,
+    NamedTuple,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+)
 
 from aioexabgp.utils import run_cmd
 
@@ -13,6 +23,10 @@ from aioexabgp.utils import run_cmd
 IPAddress = Union[IPv4Address, IPv6Address]
 IPNetwork = Union[IPv4Network, IPv6Network]
 LOG = logging.getLogger(__name__)
+
+
+# Keep a list of learn routes to be able to re-add to FIBs
+BGP_LEARNT_PREFIXES: Dict[IPNetwork, Set[IPAddress]] = {}
 
 
 class FibOperation(Enum):
@@ -144,6 +158,69 @@ class LinuxFib(Fib):
         )
 
 
+def _update_learnt_routes(  # noqa: C901
+    fib_operations: Sequence[FibPrefix],
+) -> Tuple[int, int]:
+    """ Take fib operations and keep BGP_LEARNT_PREFIXES in sync """
+    global BGP_LEARNT_PREFIXES
+    add_count = 0
+    del_count = 0
+
+    LOG.debug(
+        f"[update_learnt_rotues] Attempting to update BGP Learnt Prefixes dictionary"
+    )
+    for fib_op in fib_operations:
+        if fib_op.operation == FibOperation.ADD_ROUTE:
+            if fib_op.prefix not in BGP_LEARNT_PREFIXES:
+                if fib_op.next_hop:
+                    BGP_LEARNT_PREFIXES[fib_op.prefix] = {fib_op.next_hop}
+                else:
+                    BGP_LEARNT_PREFIXES[fib_op.prefix] = set()
+            elif fib_op.next_hop:
+                BGP_LEARNT_PREFIXES[fib_op.prefix].add(fib_op.next_hop)
+            else:
+                LOG.error(
+                    f"[update_learnt_rotues] Got a learnt route with no nethop: {fib_op}"
+                )
+                continue
+            add_count += 1
+        elif fib_op.operation == FibOperation.REMOVE_ROUTE:
+            if fib_op.prefix not in BGP_LEARNT_PREFIXES:
+                LOG.error(
+                    f"[update_learnt_rotues] {fib_op.prefix} not foud in BGP Learnt "
+                    + "Prefixes - Not deleted"
+                )
+                continue
+
+            del_ops = 0
+            if fib_op.next_hop in BGP_LEARNT_PREFIXES[fib_op.prefix]:
+                BGP_LEARNT_PREFIXES[fib_op.prefix].remove(fib_op.next_hop)
+                del_ops += 1
+
+            if not BGP_LEARNT_PREFIXES[fib_op.prefix]:
+                del BGP_LEARNT_PREFIXES[fib_op.prefix]
+                del_ops += 1
+
+            if del_ops:
+                del_count += 1
+            else:
+                LOG.error(f"[update_learnt_rotues] No deletion took place for {fib_op}")
+        elif fib_op.operation == FibOperation.REMOVE_ALL_ROUTES:
+            del_count = del_count + len(BGP_LEARNT_PREFIXES)
+            # Had to make copy of keys and delete prefixes 1 by 1 for unittests to pass
+            for key in list(BGP_LEARNT_PREFIXES.keys()):
+                del BGP_LEARNT_PREFIXES[key]
+            LOG.info(
+                f"[update_learnt_rotues] Resettting BGP Learnt Prefixes due to "
+                + "REMOVE_ALL_ROUTES being received"
+            )
+        else:
+            LOG.error(f"[update_learnt_rotues] Unknown operation: {fib_op} - Ignoring")
+
+    LOG.info(f"[update_learnt_rotues] Completed {add_count} adds / {del_count} removes")
+    return (add_count, del_count)
+
+
 def get_fib(fib_name: str, config: Dict) -> Fib:
     if fib_name == "Linux":
         return LinuxFib(config)
@@ -233,3 +310,5 @@ async def fib_operation_runner(
                 "[fib_operation_runner] There was a FIB operation failure. "
                 + " Please investigate!"
             )
+        else:
+            _update_learnt_routes(fib_operations)
