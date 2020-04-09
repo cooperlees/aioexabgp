@@ -251,7 +251,6 @@ async def prefix_consumer(
             raise
         except Exception as e:
             LOG.exception(f"[prefix_consumer] Got a {type(e)} exception")
-            continue
 
 
 async def fib_operation_runner(
