@@ -62,9 +62,16 @@ class ExaBGPParser:
 
         return []
 
-    async def parse_update(
-        self, exa_json: Dict, wanted_families: Sequence[str] = DEFAULT_FAMALIES
+    async def parse_update(  # noqa: C901
+        self,
+        exa_json: Dict,
+        wanted_families: Sequence[str] = DEFAULT_FAMALIES,
+        direction_wanted: str = "receive",
     ) -> List[FibPrefix]:
+        # Ensure this update is the direction we want - Default to receive
+        if exa_json["neighbor"]["direction"] != direction_wanted:
+            return []
+
         fib_prefixes: List[FibPrefix] = []
         try:
             update_json = exa_json["neighbor"]["message"]["update"]
