@@ -136,3 +136,28 @@ EXPECTED_WITHDRAW_REPONSE = [
         ip_network("70::/32"), ip_address("fc00:0:0:69::2"), FibOperation.REMOVE_ROUTE
     )
 ]
+
+EXABGP_UPDATE_SEND_JSON = {
+    "exabgp": "4.0.1",
+    "time": 1562873630.5337727,
+    "host": "some.router.com",
+    "pid": 4734,
+    "ppid": 4733,
+    "counter": 69,
+    "type": "update",
+    "neighbor": {
+        "address": {"local": "fc00:0:0:69::2", "peer": "fc00:0:0:69::1"},
+        "asn": {"local": 65069, "peer": 65070},
+        "direction": "send",
+        "message": {
+            "update": {
+                "attribute": {
+                    "origin": "igp",
+                    "as-path": [65070],
+                    "confederation-path": [],
+                },
+                "announce": {"ipv6 unicast": {"fc00:0:0:69::2": [{"nlri": "70::/32"}]}},
+            }
+        },
+    },
+}

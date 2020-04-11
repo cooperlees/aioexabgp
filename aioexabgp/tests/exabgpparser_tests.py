@@ -14,6 +14,7 @@ from aioexabgp.tests.exabgpparser_fixtures import (
     EXPECTED_UP_RESPONSE,
     EXABGP_UPDATE_JSON,
     EXPECTED_UPDATE_REPONSE,
+    EXABGP_UPDATE_SEND_JSON,
     EXABGP_WITHDRAW_JSON,
     EXPECTED_WITHDRAW_REPONSE,
     FAKE_HEALTHY_PREFIXES,
@@ -61,4 +62,9 @@ class ExabgpParserTests(unittest.TestCase):
         self.assertEqual(
             EXPECTED_WITHDRAW_REPONSE,
             self.loop.run_until_complete(self.ebp.parse(EXABGP_WITHDRAW_JSON)),
+        )
+
+    def test_parse_update_direction_send(self) -> None:
+        self.assertEqual(
+            [], self.loop.run_until_complete(self.ebp.parse(EXABGP_UPDATE_SEND_JSON)),
         )
