@@ -64,7 +64,7 @@ class Fib:
 
     def __init__(self, config: Dict, timeout: float = 2.0) -> None:
         self.default_allowed = config["learn"].get("allow_default", True)
-        self.default_allowed_ll = config["learn"].get("allow_default_ll", False)
+        self.allow_ll_nexthop = config["learn"].get("allow_ll_nexthop", False)
         self.prefix_limit = config["learn"].get("prefix_limit", 0)
         self.timeout = timeout
 
@@ -90,7 +90,21 @@ class Fib:
 
     ## To be implemented in child classes + make mypy happy
     async def add_route(self, prefix: IPNetwork, next_hop: IPAddress) -> bool:
-        raise NotImplementedError("Please implement in sub class")
+        if not self.default_allowed and self.is_default(prefix):
+            LOG.info(
+                f"[{self.FIB_NAME}] Not adding IPv{prefix.version} "
+                + "default route due to config"
+            )
+            return False
+
+        if next_hop and not self.allow_ll_nexthop and self.is_link_local(next_hop):
+            LOG.info(
+                f"[{self.FIB_NAME}] Link Local next-hop addresses are disabled. "
+                + f"Skipping {prefix} via {next_hop}"
+            )
+            return False
+
+        return True
 
     async def check_for_route(self, prefix: IPNetwork, next_hop: IPAddress) -> bool:
         raise NotImplementedError("Please implement in sub class")

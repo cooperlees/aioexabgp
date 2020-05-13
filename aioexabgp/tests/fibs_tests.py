@@ -1,6 +1,7 @@
 #!/usr/bin/env python3.7
 
 import unittest
+from asyncio import get_event_loop
 from unittest.mock import patch
 from ipaddress import ip_address, ip_network
 from typing import List, Sequence
@@ -16,7 +17,9 @@ from aioexabgp.announcer.fibs import (
 
 
 # TODO: Get a better test config + test more of the Fib class
-FAKE_CONFIG = {"learn": {"allow_default": True, "prefix_limit": 10}}
+FAKE_CONFIG = {
+    "learn": {"allow_default": True, "allow_ll_nexthop": True, "prefix_limit": 10}
+}
 NETWORK_PREFIXES = (ip_network("::/0"), ip_network("69::/64"))
 
 
@@ -38,6 +41,7 @@ def gen_fib_operations(
 class FibsTests(unittest.TestCase):
     def setUp(self) -> None:
         self.afib = Fib(FAKE_CONFIG)
+        self.loop = get_event_loop()
 
     def test_is_defualt(self) -> None:
         self.assertTrue(self.afib.is_default(ip_network("::/0")))
@@ -55,6 +59,36 @@ class FibsTests(unittest.TestCase):
         self.assertTrue(self.afib.is_link_local(ip_network("169.254.69.0/24")))
         self.assertFalse(self.afib.is_link_local(ip_address("6.9.6.9")))
         self.assertFalse(self.afib.is_link_local(ip_network("6.9.6.0/24")))
+
+    def test_add_route(self) -> None:
+        default_prefix = ip_network("::/0")
+        valid_next_hop = ip_address("69::69")
+        self.assertTrue(
+            self.loop.run_until_complete(
+                self.afib.add_route(default_prefix, valid_next_hop)
+            )
+        )
+
+        # Ensure we don't allow a default
+        self.afib.default_allowed = False
+        self.assertFalse(
+            self.loop.run_until_complete(
+                self.afib.add_route(default_prefix, valid_next_hop)
+            )
+        )
+
+        # Ensure we don't allow link local next hop
+        self.afib.default_allowed = True
+        self.afib.allow_ll_nexthop = False
+        link_local_next_hop = ip_address("fe80::69")
+        self.assertFalse(
+            self.loop.run_until_complete(
+                self.afib.add_route(default_prefix, link_local_next_hop)
+            )
+        )
+
+        # Restore default allow ll
+        self.afib.allow_ll_nexthop = True
 
     def test_get_fib(self) -> None:
         # Here we on purpose do not use FAKE_CONFIG
