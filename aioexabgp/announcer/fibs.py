@@ -75,7 +75,7 @@ class Fib:
 
         raise NotImplementedError(
             f"{self.FIB_NAME} configuration has a prefix limit set ({self.prefix_limit}) "
-            + f"set and has no `check_prefix_limit` method"
+            + "set and has no `check_prefix_limit` method"
         )
 
     def is_default(self, prefix: IPNetwork) -> bool:
@@ -167,7 +167,7 @@ def _update_learnt_routes(  # noqa: C901
     del_count = 0
 
     LOG.debug(
-        f"[update_learnt_rotues] Attempting to update BGP Learnt Prefixes dictionary"
+        "[update_learnt_rotues] Attempting to update BGP Learnt Prefixes dictionary"
     )
     for fib_op in fib_operations:
         if fib_op.operation == FibOperation.ADD_ROUTE:
@@ -211,7 +211,7 @@ def _update_learnt_routes(  # noqa: C901
             for key in list(BGP_LEARNT_PREFIXES.keys()):
                 del BGP_LEARNT_PREFIXES[key]
             LOG.info(
-                f"[update_learnt_rotues] Resettting BGP Learnt Prefixes due to "
+                "[update_learnt_rotues] Resettting BGP Learnt Prefixes due to "
                 + "REMOVE_ALL_ROUTES being received"
             )
         else:
@@ -240,7 +240,7 @@ async def prefix_consumer(
     LOG.debug(f"prefix_consumer got {len(fibs)} FIBS")
 
     while True:
-        LOG.debug(f"[prefix_consumer] Waiting for FIB prefix to consume")
+        LOG.debug("[prefix_consumer] Waiting for FIB prefix to consume")
         try:
             fib_operations = await prefix_queue.get()
             LOG.info(
@@ -281,18 +281,18 @@ async def fib_operation_runner(
                 )
             elif fib_operation.operation == FibOperation.REMOVE_ALL_ROUTES:
                 LOG.debug(
-                    f"[fib_operation_runner] Removing ALL routes via "
+                    "[fib_operation_runner] Removing ALL routes via "
                     + f"{fib_operation.next_hop} from {fib_name}"
                 )
                 route_tasks.append(fib.del_all_routes(fib_operation.next_hop))
             else:
                 LOG.error(
                     f"[fib_operation_runner] {fib_operation.operation} "
-                    + f"operation is unhandled"
+                    + "operation is unhandled"
                 )
 
         if not route_tasks:
-            LOG.error(f"[fib_operation_runner] No route tasks generated for update")
+            LOG.error("[fib_operation_runner] No route tasks generated for update")
             continue
 
         log_msg = (

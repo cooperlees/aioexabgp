@@ -24,7 +24,7 @@ class ExaBGPParser:
     ) -> List[FibPrefix]:
         if exa_json["exabgp"] != self.SUPPORTED_API_VERSION:
             raise ValueError(
-                f"Exabgp JSON version has changed from know tested version. Investigate"
+                "Exabgp JSON version has changed from know tested version. Investigate"
             )
 
         if exa_json["type"].lower() == "state":

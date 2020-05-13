@@ -272,17 +272,17 @@ class Announcer:
                 self.learn_queue, fib_names, self.config, dry_run=self.dry_run
             )
         )
-        LOG.debug(f"Started a FIB operation consumer")
+        LOG.debug("Started a FIB operation consumer")
 
         try:
             while True:
-                LOG.debug(f"Waiting for API JSON via stdin")
+                LOG.debug("Waiting for API JSON via stdin")
                 bgp_msg = await self.nonblock_read()
 
                 # TODO: Evaluate if we should care and check if we get a done message
                 # Ignore done from API calls
                 if bgp_msg.strip() == "done":
-                    LOG.debug(f"Recieved a 'done' message from exabgp")
+                    LOG.debug("Recieved a 'done' message from exabgp")
                     continue
 
                 try:
