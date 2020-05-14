@@ -1,5 +1,5 @@
 {
-    "conf_version": "0.0.3",
+    "conf_version": "0.0.4",
     "advertise": {
         "interval": 5.0,
         "next_hop": "self",
@@ -29,7 +29,7 @@
     },
     "learn": {
         "allow_default": false,
-        "allow_default_ll": false,
+        "allow_ll_nexthop": false,
         "fibs": [
             "Linux"
         ],
