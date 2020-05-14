@@ -123,14 +123,10 @@ class LinuxFib(Fib):
     FIB_NAME = "Linux FIB"
 
     async def add_route(self, prefix: IPNetwork, next_hop: IPAddress) -> bool:
+        if not await super().add_route(prefix, next_hop):
+            return False
+
         LOG.info(f"[{self.FIB_NAME}] Adding route to {str(prefix)} via {str(next_hop)}")
-
-        if not self.default_allowed:
-            is_default = self.is_default(prefix)
-            if is_default:
-                LOG.info(f"Not adding IPv{prefix.version} default route due to config")
-                return False
-
         return await run_cmd(
             (
                 "sudo",
@@ -138,7 +134,7 @@ class LinuxFib(Fib):
                 f"-{prefix.version}",
                 "route",
                 "add",
-                str(prefix) if is_default else "default",
+                "default" if self.is_default(prefix) else str(prefix),
                 "via",
                 str(next_hop),
             ),
