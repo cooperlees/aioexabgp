@@ -80,8 +80,8 @@ class Announcer:
         self.executor.shutdown(wait=wait)
 
     async def nonblock_print(self, output: str) -> bool:
-        """ Lock for one print @ a time + wrap print so we
-            don't block and can timeout """
+        """Lock for one print @ a time + wrap print so we
+        don't block and can timeout"""
         try:
             async with self.print_lock:
                 LOG.debug(f"Attempting to print '{output}' to STDOUT")
@@ -104,8 +104,8 @@ class Announcer:
     def remove_internal_networks(
         self, bgp_prefixes: List[FibPrefix], ip_version: int = 6
     ) -> List[FibPrefix]:
-        """ Check if exabgp has told us about an internal summary
-            If so remove it from being internally advertised to our FIBs"""
+        """Check if exabgp has told us about an internal summary
+        If so remove it from being internally advertised to our FIBs"""
         if not bgp_prefixes:
             return bgp_prefixes
 
@@ -262,8 +262,8 @@ class Announcer:
             await asyncio.sleep(sleep_time)
 
     async def learn(self) -> None:
-        """ Read messages from exabgp and act accordinly
-            - We only support JSON API """
+        """Read messages from exabgp and act accordinly
+        - We only support JSON API"""
         ejp = ExaBGPParser()
 
         fib_names = self.config["learn"].get("fibs", [])

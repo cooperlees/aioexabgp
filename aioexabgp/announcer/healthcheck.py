@@ -26,13 +26,13 @@ class HealthChecker:
 
 
 class PingChecker(HealthChecker):
-    """ Send ICMP/ICMPv6 Pings to check reachability
-        - Only support IP addresses for now
-        - Subprocess so this script + exabgp don't need setuid
+    """Send ICMP/ICMPv6 Pings to check reachability
+    - Only support IP addresses for now
+    - Subprocess so this script + exabgp don't need setuid
 
-        Config Supported:
-        - "ping_count": Default 2
-        - "ping_timeout": Default 5 (seconds) """
+    Config Supported:
+    - "ping_count": Default 2
+    - "ping_timeout": Default 5 (seconds)"""
 
     def __init__(self, config: Dict) -> None:
         self.target_ip = ip_address(config["ping_target"])

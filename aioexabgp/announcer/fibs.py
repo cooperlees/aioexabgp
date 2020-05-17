@@ -45,13 +45,13 @@ class FibPrefix(NamedTuple):
 
 
 class Fib:
-    """ Base class for all FIB implementations
+    """Base class for all FIB implementations
 
-        Subclass to implement:
-        - add_route(prefix, next_hop)
-        - check_for_route()
-        - check_prefix_limit()
-        - del_route(prefix)
+    Subclass to implement:
+    - add_route(prefix, next_hop)
+    - check_for_route()
+    - check_prefix_limit()
+    - del_route(prefix)
     """
 
     DEFAULT_v4_route = ip_network("0.0.0.0/0")
@@ -74,8 +74,8 @@ class Fib:
             return 0
 
         raise NotImplementedError(
-            f"{self.FIB_NAME} configuration has a prefix limit set ({self.prefix_limit}) "
-            + "set and has no `check_prefix_limit` method"
+            f"{self.FIB_NAME} configuration has a prefix limit set"
+            f" ({self.prefix_limit}) set and has no `check_prefix_limit` method"
         )
 
     def is_default(self, prefix: IPNetwork) -> bool:
@@ -190,7 +190,8 @@ def _update_learnt_routes(  # noqa: C901
                 BGP_LEARNT_PREFIXES[fib_op.prefix].add(fib_op.next_hop)
             else:
                 LOG.error(
-                    f"[update_learnt_rotues] Got a learnt route with no nethop: {fib_op}"
+                    "[update_learnt_rotues] Got a learnt route with no nethop:"
+                    f" {fib_op}"
                 )
                 continue
             add_count += 1
@@ -254,7 +255,8 @@ async def prefix_consumer(
         try:
             fib_operations = await prefix_queue.get()
             LOG.info(
-                f"[prefix_consumer] Prefix Queue has {prefix_queue.qsize()} tasks queued"
+                f"[prefix_consumer] Prefix Queue has {prefix_queue.qsize()} tasks"
+                " queued"
             )
             await fib_operation_runner(fibs, fib_operations, dry_run)
         except asyncio.CancelledError:

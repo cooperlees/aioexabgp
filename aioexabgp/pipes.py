@@ -19,8 +19,8 @@ class PipePaths(NamedTuple):
 
 
 class ExaBGPPipes:
-    """ Class to control reading and writing to ExaBGP FIFO Named Pipes
-        - Caller to maintain synconization with self.alock """
+    """Class to control reading and writing to ExaBGP FIFO Named Pipes
+    - Caller to maintain synconization with self.alock"""
 
     def __init__(
         self,
@@ -63,13 +63,13 @@ class ExaBGPPipes:
             os.close(fd)
 
     async def read(self, *, timeout: float = 5.0) -> bytes:
-        """ Read API response and deserialize it
-            - Wrap blocking read in an executor so it's non blocking
-              and has a customizable timeout
+        """Read API response and deserialize it
+        - Wrap blocking read in an executor so it's non blocking
+          and has a customizable timeout
 
-            Throws:
-                - IOError
-                - asyncio.TimeoutError """
+        Throws:
+            - IOError
+            - asyncio.TimeoutError"""
 
         return await asyncio.wait_for(
             self.loop.run_in_executor(self.executor, self._read), timeout=timeout
@@ -83,11 +83,11 @@ class ExaBGPPipes:
             os.close(fd)
 
     async def write(self, msg: Union[bytes, str], *, timeout: float = 5.0) -> int:
-        """ Write str to API FIFO
-            - Wrap blocking write in an executor so it's non blocking
-              and has a customizable timeout
+        """Write str to API FIFO
+        - Wrap blocking write in an executor so it's non blocking
+          and has a customizable timeout
 
-            Throws: IOError, asyncio.TimeoutError """
+        Throws: IOError, asyncio.TimeoutError"""
 
         if isinstance(msg, str):
             msg = msg.encode("utf-8")
