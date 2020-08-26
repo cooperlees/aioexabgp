@@ -66,5 +66,6 @@ class ExabgpParserTests(unittest.TestCase):
 
     def test_parse_update_direction_send(self) -> None:
         self.assertEqual(
-            [], self.loop.run_until_complete(self.ebp.parse(EXABGP_UPDATE_SEND_JSON)),
+            [],
+            self.loop.run_until_complete(self.ebp.parse(EXABGP_UPDATE_SEND_JSON)),
         )
