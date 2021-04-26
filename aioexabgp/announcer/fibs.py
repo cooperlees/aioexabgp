@@ -37,7 +37,7 @@ class FibOperation(Enum):
 
 
 class FibPrefix(NamedTuple):
-    """ Immutable object to place on FIB Queue - Then perform operation """
+    """Immutable object to place on FIB Queue - Then perform operation"""
 
     prefix: IPNetwork
     next_hop: Optional[IPAddress]
@@ -117,7 +117,7 @@ class Fib:
 
 
 class LinuxFib(Fib):
-    """ Adding and taking routes out of the Linux (or Mac OS X) Routing Table """
+    """Adding and taking routes out of the Linux (or Mac OS X) Routing Table"""
 
     IP_CMD = "/usr/local/bin/ip" if system() == "Darwin" else "/sbin/ip"
     FIB_NAME = "Linux FIB"
@@ -171,7 +171,7 @@ class LinuxFib(Fib):
 def _update_learnt_routes(  # noqa: C901
     fib_operations: Sequence[FibPrefix],
 ) -> Tuple[int, int]:
-    """ Take fib operations and keep BGP_LEARNT_PREFIXES in sync """
+    """Take fib operations and keep BGP_LEARNT_PREFIXES in sync"""
     global BGP_LEARNT_PREFIXES
     add_count = 0
     del_count = 0
@@ -246,7 +246,7 @@ async def prefix_consumer(
     *,
     dry_run: bool = False,
 ) -> None:
-    """ Watch the queue for FibPrefix and apply the FibOperation to all FIBs """
+    """Watch the queue for FibPrefix and apply the FibOperation to all FIBs"""
     fibs = {f: get_fib(f, config) for f in fib_names}
     LOG.debug(f"prefix_consumer got {len(fibs)} FIBS")
 

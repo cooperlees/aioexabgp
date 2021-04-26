@@ -97,7 +97,7 @@ class Announcer:
         return True
 
     async def nonblock_read(self, input: TextIO = stdin) -> str:
-        """ Wrap stdin.read() so we can wait for input non-blocking other coroutines """
+        """Wrap stdin.read() so we can wait for input non-blocking other coroutines"""
         stdin_line = await self.loop.run_in_executor(self.executor, input.readline)
         return stdin_line.strip()
 
@@ -151,7 +151,7 @@ class Announcer:
         return sorted(valid_redist_networks)
 
     def validate_next_hop(self, next_hop: str) -> str:
-        """ Ensure next hop can ONLY be self of a valid IP Address """
+        """Ensure next hop can ONLY be self of a valid IP Address"""
         if next_hop.lower() == "self":
             return next_hop.lower()
 
@@ -181,7 +181,7 @@ class Announcer:
         return success
 
     async def withdraw_all_routes(self) -> int:
-        """ Withdraw all routes in self.advertise_prefixes """
+        """Withdraw all routes in self.advertise_prefixes"""
         all_prefixes = sorted(self.advertise_prefixes.keys())
         if not all_prefixes:
             return 0

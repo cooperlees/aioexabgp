@@ -15,7 +15,7 @@ LOG = logging.getLogger(__name__)
 
 
 class ExaBGPParser:
-    """ Class to parse ExaBGP JSON and return FibPrefix """
+    """Class to parse ExaBGP JSON and return FibPrefix"""
 
     SUPPORTED_API_VERSION = "4.0.1"
 

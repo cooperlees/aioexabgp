@@ -37,7 +37,7 @@ class ExaBGPPipes:
         self.read_chunk_size = read_chunk_size
 
     async def check_pipes(self) -> bool:
-        """ Check that we can stat each pipe """
+        """Check that we can stat each pipe"""
         access_results = await asyncio.gather(
             self.loop.run_in_executor(
                 self.executor, os.access, self.pipe_paths.in_pipe, os.W_OK

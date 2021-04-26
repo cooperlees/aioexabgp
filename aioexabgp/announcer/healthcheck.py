@@ -13,7 +13,7 @@ LOG = logging.getLogger(__name__)
 
 
 class HealthChecker:
-    """ Base class for defining base Health Check API """
+    """Base class for defining base Health Check API"""
 
     TIMEOUT_DEFAULT = 5
 

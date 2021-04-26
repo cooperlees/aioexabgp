@@ -15,7 +15,7 @@ LOG = logging.getLogger(__name__)
 
 
 def _load_json_config(config: str) -> Dict:
-    """ Generate an Announce config - We have one by default """
+    """Generate an Announce config - We have one by default"""
     json_conf = {}
 
     config_path = Path(config)
