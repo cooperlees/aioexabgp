@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import logging
-from ipaddress import IPv4Network, IPv6Network, ip_address, ip_network
+from ipaddress import ip_address, ip_network, IPv4Network, IPv6Network
 from platform import system
 from typing import Dict, List, Union
 

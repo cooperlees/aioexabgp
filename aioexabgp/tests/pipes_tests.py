@@ -2,7 +2,7 @@
 
 import os
 import unittest
-from asyncio import TimeoutError, get_event_loop
+from asyncio import get_event_loop, TimeoutError
 from pathlib import Path
 from tempfile import gettempdir
 from time import sleep

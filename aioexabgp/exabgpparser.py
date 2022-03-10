@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
 import logging
-from ipaddress import IPv4Network, IPv6Network, ip_address, ip_network
+from ipaddress import ip_address, ip_network, IPv4Network, IPv6Network
 from json import dumps
-from typing import Dict, List, Optional, Set, Sequence, Union
+from typing import Dict, List, Optional, Sequence, Set, Union
 
 from aioexabgp.announcer.fibs import FibOperation, FibPrefix
 

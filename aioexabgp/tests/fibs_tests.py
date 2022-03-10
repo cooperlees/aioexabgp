@@ -2,18 +2,18 @@
 
 import unittest
 from asyncio import get_event_loop
-from unittest.mock import patch
 from ipaddress import ip_address, ip_network
 from typing import List, Sequence
+from unittest.mock import patch
 
 from aioexabgp.announcer.fibs import (
+    _update_learnt_routes,
     BGP_LEARNT_PREFIXES,
     Fib,
     FibOperation,
     FibPrefix,
-    LinuxFib,
-    _update_learnt_routes,
     get_fib,
+    LinuxFib,
 )
 
 

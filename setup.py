@@ -18,6 +18,7 @@ ptr_params = {
     "run_flake8": True,
     "run_black": True,
     "run_mypy": True,
+    "run_usort": True,
 }
 
 

@@ -6,17 +6,17 @@ import logging
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from functools import partial
 from ipaddress import (
-    IPv4Address,
-    IPv6Address,
-    IPv4Network,
-    IPv6Network,
     ip_address,
     ip_network,
+    IPv4Address,
+    IPv4Network,
+    IPv6Address,
+    IPv6Network,
 )
 from json import JSONDecodeError, loads
 from sys import stdin
 from time import time
-from typing import Awaitable, Dict, List, Optional, Set, Sequence, TextIO, Union
+from typing import Awaitable, Dict, List, Optional, Sequence, Set, TextIO, Union
 
 from aioexabgp.exabgpparser import ExaBGPParser
 from .fibs import FibPrefix, prefix_consumer

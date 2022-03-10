@@ -3,8 +3,8 @@
 import asyncio
 import unittest
 from contextlib import redirect_stdout
-from ipaddress import ip_network
 from io import StringIO
+from ipaddress import ip_network
 from unittest.mock import patch
 
 from aioexabgp.announcer import Announcer

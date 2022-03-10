@@ -3,7 +3,7 @@
 import asyncio
 import logging
 from enum import Enum
-from ipaddress import IPv4Address, IPv4Network, IPv6Address, IPv6Network, ip_network
+from ipaddress import ip_network, IPv4Address, IPv4Network, IPv6Address, IPv6Network
 from platform import system
 from typing import (
     Awaitable,
