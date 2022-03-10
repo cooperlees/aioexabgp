@@ -3,7 +3,7 @@
 
 NEXT_HOP = "2000:69::1"
 ANNOUNCER_CONFIG = {
-    "conf_version": "0.0.2",
+    "conf_version": "0.0.4",
     "advertise": {
         "interval": 5.0,
         "next_hop": NEXT_HOP,
@@ -28,5 +28,5 @@ ANNOUNCER_CONFIG = {
         "filter_prefixes": [],
         "prefix_limit": 0,
     },
-    "log_level": "Debug",
+    "log_level": "debug",
 }

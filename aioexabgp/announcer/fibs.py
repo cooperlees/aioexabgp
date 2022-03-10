@@ -121,6 +121,7 @@ class LinuxFib(Fib):
 
     IP_CMD = "/usr/local/bin/ip" if system() == "Darwin" else "/sbin/ip"
     FIB_NAME = "Linux FIB"
+    SUDO_CMD = "/usr/sbin/sudo" if system() == "Darwin" else "/usr/bin/sudo"
 
     async def add_route(self, prefix: IPNetwork, next_hop: IPAddress) -> bool:
         if not await super().add_route(prefix, next_hop):
@@ -128,17 +129,7 @@ class LinuxFib(Fib):
 
         LOG.info(f"[{self.FIB_NAME}] Adding route to {str(prefix)} via {str(next_hop)}")
         return await run_cmd(
-            (
-                "sudo",
-                self.IP_CMD,
-                f"-{prefix.version}",
-                "route",
-                "add",
-                "default" if self.is_default(prefix) else str(prefix),
-                "via",
-                str(next_hop),
-            ),
-            self.timeout,
+            self.gen_route_command("add", prefix, next_hop), self.timeout
         )
 
     async def check_for_route(self, prefix: IPNetwork, next_hop: IPAddress) -> bool:
@@ -154,18 +145,26 @@ class LinuxFib(Fib):
     async def del_route(self, prefix: IPNetwork, next_hop: IPAddress) -> bool:
         LOG.info(f"[{self.FIB_NAME}] Deleting route to {str(prefix)}")
         return await run_cmd(
-            (
-                "sudo",
-                self.IP_CMD,
-                f"-{prefix.version}",
-                "route",
-                "del",
-                "default" if self.is_default(prefix) else str(prefix),
-                "via",
-                str(next_hop),
-            ),
+            self.gen_route_command("delete", prefix, next_hop),
             self.timeout,
         )
+
+    def gen_route_command(
+        self, op: str, prefix: IPNetwork, next_hop: IPAddress
+    ) -> List[str]:
+        cmd = [
+            self.SUDO_CMD,
+            self.IP_CMD,
+            f"-{prefix.version}",
+            "route",
+            op,
+            "default" if self.is_default(prefix) else str(prefix),
+            "via",
+        ]
+        if prefix.version == 4 and next_hop.version == 6:
+            cmd.append("inet6")
+        cmd.append(str(next_hop))
+        return cmd
 
 
 def _update_learnt_routes(  # noqa: C901

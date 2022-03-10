@@ -11,6 +11,7 @@ from aioexabgp.announcer.fibs import (
     Fib,
     FibOperation,
     FibPrefix,
+    LinuxFib,
     _update_learnt_routes,
     get_fib,
 )
@@ -138,3 +139,62 @@ class FibsTests(unittest.TestCase):
         )
         self.assertEqual(dels, 2)
         self.assertFalse(BGP_LEARNT_PREFIXES)
+
+
+class LinuxFibsTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.lfib = LinuxFib(FAKE_CONFIG)
+        self.loop = get_event_loop()
+
+    def test_gen_route_cmd(self) -> None:
+        # test v4 via v6
+        default_v4_prefix = ip_network("0.0.0.0/0")
+        v6_next_hop = ip_address("69::69")
+        self.assertEqual(
+            [
+                self.lfib.SUDO_CMD,
+                self.lfib.IP_CMD,
+                "-4",
+                "route",
+                "add",
+                "default",
+                "via",
+                "inet6",
+                "69::69",
+            ],
+            self.lfib.gen_route_cmd("add", default_v4_prefix, v6_next_hop),
+        )
+
+        # test v4
+        sixty_nine_prefix = ip_network("69.0.0.0/8")
+        v4_next_hop = ip_address("6.9.6.9")
+        self.assertEqual(
+            [
+                self.lfib.SUDO_CMD,
+                self.lfib.IP_CMD,
+                "-4",
+                "route",
+                "add",
+                sixty_nine_prefix.compressed,
+                "via",
+                "6.9.6.9",
+            ],
+            self.lfib.gen_route_cmd("add", sixty_nine_prefix, v4_next_hop),
+        )
+
+        # test v6
+        sixty_nine_prefix = ip_network("69::/64")
+        v6_next_hop = ip_address("70::69")
+        self.assertEqual(
+            [
+                self.lfib.SUDO_CMD,
+                self.lfib.IP_CMD,
+                "-6",
+                "route",
+                "delete",
+                sixty_nine_prefix.compressed,
+                "via",
+                "6.9.6.9",
+            ],
+            self.lfib.gen_route_cmd("delete", sixty_nine_prefix, v6_next_hop),
+        )
