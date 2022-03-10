@@ -141,10 +141,9 @@ class FibsTests(unittest.TestCase):
         self.assertFalse(BGP_LEARNT_PREFIXES)
 
 
-class LinuxFibsTests(unittest.TestCase):
+class LinuxFibTests(unittest.TestCase):
     def setUp(self) -> None:
         self.lfib = LinuxFib(FAKE_CONFIG)
-        self.loop = get_event_loop()
 
     def test_gen_route_cmd(self) -> None:
         # test v4 via v6
@@ -160,9 +159,9 @@ class LinuxFibsTests(unittest.TestCase):
                 "default",
                 "via",
                 "inet6",
-                "69::69",
+                v6_next_hop.compressed,
             ],
-            self.lfib.gen_route_cmd("add", default_v4_prefix, v6_next_hop),
+            self.lfib.gen_route_command("add", default_v4_prefix, v6_next_hop),
         )
 
         # test v4
@@ -177,9 +176,9 @@ class LinuxFibsTests(unittest.TestCase):
                 "add",
                 sixty_nine_prefix.compressed,
                 "via",
-                "6.9.6.9",
+                v4_next_hop.compressed,
             ],
-            self.lfib.gen_route_cmd("add", sixty_nine_prefix, v4_next_hop),
+            self.lfib.gen_route_command("add", sixty_nine_prefix, v4_next_hop),
         )
 
         # test v6
@@ -194,7 +193,7 @@ class LinuxFibsTests(unittest.TestCase):
                 "delete",
                 sixty_nine_prefix.compressed,
                 "via",
-                "6.9.6.9",
+                v6_next_hop.compressed,
             ],
-            self.lfib.gen_route_cmd("delete", sixty_nine_prefix, v6_next_hop),
+            self.lfib.gen_route_command("delete", sixty_nine_prefix, v6_next_hop),
         )
