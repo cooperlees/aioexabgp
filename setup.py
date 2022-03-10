@@ -23,7 +23,7 @@ ptr_params = {
 
 setup(
     name="aioexabgp",
-    version="2020.5.13",
+    version="2022.3.9",
     description="asyncio exabgp base API client",
     packages=["aioexabgp", "aioexabgp.announcer", "aioexabgp.tests"],
     url="http://github.com/cooperlees/aioexabgp/",
@@ -32,11 +32,11 @@ setup(
     classifiers=[
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
         "Development Status :: 3 - Alpha",
     ],
-    python_requires=">=3.6",
+    python_requires=">=3.8",
     test_suite=ptr_params["test_suite"],
 )

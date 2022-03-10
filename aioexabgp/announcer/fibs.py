@@ -86,7 +86,7 @@ class Fib:
         LOG.debug(f"Checking if {prefix} is link local")
         if isinstance(prefix, (IPv4Address, IPv6Address)):
             return prefix in self.LINKLOCALS[prefix.version]
-        return self.LINKLOCALS[prefix.version].overlaps(prefix)
+        return bool(self.LINKLOCALS[prefix.version].overlaps(prefix))
 
     ## To be implemented in child classes + make mypy happy
     async def add_route(self, prefix: IPNetwork, next_hop: IPAddress) -> bool:

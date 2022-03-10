@@ -40,7 +40,7 @@ class PingChecker(HealthChecker):
         self.timeout = config.get("ping_timeout", self.TIMEOUT_DEFAULT)
         self.wait = config.get("ping_wait", int(self.timeout) - 1)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (
             f"PingChecker - Target: {self.target_ip} Count: {self.count}"
             + f" Timeout: {self.timeout}"

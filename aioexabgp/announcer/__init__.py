@@ -62,16 +62,16 @@ class Announcer:
         # GIL will prob ensure this, but lets explicitly lock
         self.print_lock = asyncio.Lock()
 
+    # TODO: Test to see if we still need this
     def _cleanup_executor(self, wait: bool = False) -> None:
         if not self.executor:
             LOG.debug(f"Executor is falsey. Not cleaning up executor {self.executor}")
             return
 
-        # mypy thinks "ThreadPoolExecutor" has no attribute "_threads"
         if isinstance(self.executor, ThreadPoolExecutor):
-            for thread in self.executor._threads:  # type: ignore
+            for thread in self.executor._threads:
                 try:
-                    thread._tstate_lock.release()
+                    thread._tstate_lock.release()  # type: ignore
                 except Exception as e:
                     LOG.debug(f"Problem with releasing a thread: {e}")
                     pass
@@ -156,7 +156,7 @@ class Announcer:
             return next_hop.lower()
 
         ip_next_hop = ip_address(next_hop)
-        return ip_next_hop.compressed
+        return str(ip_next_hop.compressed)
 
     async def add_routes(self, prefixes: Sequence[IPNetwork]) -> int:
         success = 0
