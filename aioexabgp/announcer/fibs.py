@@ -6,6 +6,7 @@ import re
 from enum import Enum
 from ipaddress import ip_network, IPv4Address, IPv4Network, IPv6Address, IPv6Network
 from platform import system
+from subprocess import CompletedProcess
 from typing import (
     Awaitable,
     Dict,
@@ -136,22 +137,35 @@ class LinuxFib(Fib):
         )
         return cp.returncode == 0
 
+    async def get_route_table(self, ip_version: int) -> CompletedProcess:
+        return await run_cmd(
+            (self.SUDO_CMD, self.IP_CMD, f"-{ip_version}", "route", "show")
+        )
+
     async def check_for_route(self, prefix: IPNetwork, next_hop: IPAddress) -> bool:
         route_regex = (
             rf"{prefix.compressed} via.*{next_hop.compressed}.*metric {self.METRIC}.*"
         )
-        route_table = await run_cmd(
-            (self.SUDO_CMD, self.IP_CMD, f"-{prefix.version}", "route", "show")
-        )
+        route_table = await self.get_route_table(prefix.version)
         if re.search(route_regex, route_table.stdout):
             return True
         return False
 
     async def del_all_routes(self, next_hop: IPAddress) -> bool:
-        LOG.error(f"[{self.FIB_NAME}] does not have del_all_routes implemented")
-        # TODO: Implement removal of all routes for next_hop
-        # return await run_cmd()
-        return False
+        del_route_count = 0
+        v4_route_table = await self.get_route_table(4)
+        v6_route_table = await self.get_route_table(6)
+        nexthop_regex = rf"(.*) via.*{next_hop.compressed}.*metric {self.METRIC}.*"
+        for route_table in v4_route_table, v6_route_table:
+            for line in route_table.stdout.splitlines():
+                if prefix_match := re.match(nexthop_regex, line):
+                    prefix_str = prefix_match.group(1)
+                    if not await self.del_route(ip_network(prefix_str), next_hop):
+                        LOG.error(f"Failed to delete {prefix_str} in del_all_routes")
+                    else:
+                        del_route_count += 1
+        LOG.info(f"del_all_routes deleted {del_route_count} routes")
+        return bool(del_route_count)
 
     async def del_route(self, prefix: IPNetwork, next_hop: IPAddress) -> bool:
         LOG.info(f"[{self.FIB_NAME}] Deleting route to {str(prefix)}")

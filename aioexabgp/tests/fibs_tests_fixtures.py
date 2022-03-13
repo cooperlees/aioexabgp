@@ -21,3 +21,9 @@ fc00::/7 via fe80::3 dev vlan69 proto static metric 1469 pref medium
 default via fe80::201:5cff:fe7e:8446 dev ens2f0 proto ra metric 1012 expires 8997sec pref medium
 """
 V6_CP = CompletedProcess(args=None, returncode=0, stdout=V6_ROUTES)
+
+
+async def mocked_get_route_table(_, ip_version: int) -> CompletedProcess:
+    if ip_version == 4:
+        return V4_CP
+    return V6_CP
