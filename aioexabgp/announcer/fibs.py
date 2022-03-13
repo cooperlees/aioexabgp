@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import re
 from enum import Enum
 from ipaddress import ip_network, IPv4Address, IPv4Network, IPv6Address, IPv6Network
 from platform import system
@@ -121,6 +122,8 @@ class LinuxFib(Fib):
 
     IP_CMD = "/usr/local/bin/ip" if system() == "Darwin" else "/sbin/ip"
     FIB_NAME = "Linux FIB"
+    # Hack to identify routes we add
+    METRIC = 31337
     SUDO_CMD = "/usr/sbin/sudo" if system() == "Darwin" else "/usr/bin/sudo"
 
     async def add_route(self, prefix: IPNetwork, next_hop: IPAddress) -> bool:
@@ -128,13 +131,21 @@ class LinuxFib(Fib):
             return False
 
         LOG.info(f"[{self.FIB_NAME}] Adding route to {str(prefix)} via {str(next_hop)}")
-        return await run_cmd(
+        cp = await run_cmd(
             self.gen_route_command("add", prefix, next_hop), self.timeout
         )
+        return cp.returncode == 0
 
     async def check_for_route(self, prefix: IPNetwork, next_hop: IPAddress) -> bool:
-        # TODO: Implement running ip -prefix.version route and check for prefix existing
-        return True
+        route_regex = (
+            rf"{prefix.compressed} via.*{next_hop.compressed}.*metric {self.METRIC}.*"
+        )
+        route_table = await run_cmd(
+            (self.SUDO_CMD, self.IP_CMD, f"-{prefix.version}", "route", "show")
+        )
+        if re.search(route_regex, route_table.stdout):
+            return True
+        return False
 
     async def del_all_routes(self, next_hop: IPAddress) -> bool:
         LOG.error(f"[{self.FIB_NAME}] does not have del_all_routes implemented")
@@ -144,10 +155,11 @@ class LinuxFib(Fib):
 
     async def del_route(self, prefix: IPNetwork, next_hop: IPAddress) -> bool:
         LOG.info(f"[{self.FIB_NAME}] Deleting route to {str(prefix)}")
-        return await run_cmd(
+        cp = await run_cmd(
             self.gen_route_command("delete", prefix, next_hop),
             self.timeout,
         )
+        return cp.returncode == 0
 
     def gen_route_command(
         self, op: str, prefix: IPNetwork, next_hop: IPAddress
@@ -164,6 +176,7 @@ class LinuxFib(Fib):
         if prefix.version == 4 and next_hop.version == 6:
             cmd.append("inet6")
         cmd.append(str(next_hop))
+        cmd.extend(["metric", str(self.METRIC)])
         return cmd
 
 

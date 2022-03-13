@@ -13,12 +13,20 @@ class UtilsTests(unittest.TestCase):
     def test_run_cmd(self, mock_log: Mock):
         loop = asyncio.get_event_loop()
         # Success
-        self.assertTrue(loop.run_until_complete(utils.run_cmd(("echo", "Hello World"))))
+        self.assertEqual(
+            0,
+            loop.run_until_complete(utils.run_cmd(("echo", "Hello World"))).returncode,
+        )
         # Fail
-        self.assertFalse(
-            loop.run_until_complete(utils.run_cmd(("grep", "CatDog69", "/etc/hosts")))
+        self.assertEqual(
+            1,
+            loop.run_until_complete(
+                utils.run_cmd(("grep", "CatDog69", "/etc/hosts"))
+            ).returncode,
         )
         # Timeout
-        self.assertFalse(loop.run_until_complete(utils.run_cmd(("sleep", "6.9"), 0.5)))
+        self.assertEqual(
+            -1, loop.run_until_complete(utils.run_cmd(("sleep", "6.9"), 0.5)).returncode
+        )
         # Show we logged each failure
         self.assertEqual(mock_log.call_count, 2)

@@ -51,7 +51,7 @@ class PingChecker(HealthChecker):
         if system() != "Darwin":
             cmd.extend(["-w", str(self.wait)])
         cmd.extend(["-c", str(self.count), self.target_ip.compressed])
-        return await run_cmd(cmd, self.timeout)
+        return (await run_cmd(cmd, self.timeout)).check_returncode == 0
 
     async def check(self) -> bool:
         try:

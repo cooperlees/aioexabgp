@@ -15,8 +15,10 @@ from aioexabgp.announcer.fibs import (
     get_fib,
     LinuxFib,
 )
+from aioexabgp.tests import fibs_tests_fixtures
 
 
+BASE_MODULE = "aioexabgp.announcer.fibs"
 # TODO: Get a better test config + test more of the Fib class
 FAKE_CONFIG = {
     "learn": {"allow_default": True, "allow_ll_nexthop": True, "prefix_limit": 10}
@@ -144,6 +146,49 @@ class FibsTests(unittest.TestCase):
 class LinuxFibTests(unittest.TestCase):
     def setUp(self) -> None:
         self.lfib = LinuxFib(FAKE_CONFIG)
+        self.loop = get_event_loop()
+
+    def test_check_for_route(self) -> None:
+        # v4 check if it exists
+        with patch(f"{BASE_MODULE}.run_cmd", return_value=fibs_tests_fixtures.V4_CP):
+            self.assertTrue(
+                self.loop.run_until_complete(
+                    self.lfib.check_for_route(
+                        ip_network("10.255.0.0/16"), ip_address("10.1.1.3")
+                    )
+                )
+            )
+            # v4 via v6
+            self.assertTrue(
+                self.loop.run_until_complete(
+                    self.lfib.check_for_route(
+                        ip_network("1.1.1.0/24"), ip_address("fd00::4")
+                    )
+                )
+            )
+            self.assertFalse(
+                self.loop.run_until_complete(
+                    self.lfib.check_for_route(
+                        ip_network("10.6.9.0/24"), ip_address("10.9.6.1")
+                    )
+                )
+            )
+        # v6 check if it exists
+        with patch(f"{BASE_MODULE}.run_cmd", return_value=fibs_tests_fixtures.V6_CP):
+            self.assertTrue(
+                self.loop.run_until_complete(
+                    self.lfib.check_for_route(
+                        ip_network("fd00:70::/64"), ip_address("fd00::4")
+                    )
+                )
+            )
+            self.assertFalse(
+                self.loop.run_until_complete(
+                    self.lfib.check_for_route(
+                        ip_network("69::/64"), ip_address("fd00::4")
+                    )
+                )
+            )
 
     def test_gen_route_cmd(self) -> None:
         # test v4 via v6
@@ -160,6 +205,8 @@ class LinuxFibTests(unittest.TestCase):
                 "via",
                 "inet6",
                 v6_next_hop.compressed,
+                "metric",
+                "31337",
             ],
             self.lfib.gen_route_command("add", default_v4_prefix, v6_next_hop),
         )
@@ -177,6 +224,8 @@ class LinuxFibTests(unittest.TestCase):
                 sixty_nine_prefix.compressed,
                 "via",
                 v4_next_hop.compressed,
+                "metric",
+                "31337",
             ],
             self.lfib.gen_route_command("add", sixty_nine_prefix, v4_next_hop),
         )
@@ -194,6 +243,8 @@ class LinuxFibTests(unittest.TestCase):
                 sixty_nine_prefix.compressed,
                 "via",
                 v6_next_hop.compressed,
+                "metric",
+                "31337",
             ],
             self.lfib.gen_route_command("delete", sixty_nine_prefix, v6_next_hop),
         )

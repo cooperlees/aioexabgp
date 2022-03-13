@@ -134,10 +134,7 @@ class Announcer:
 
             is_a_subnet = False
             for advertise_network in current_advertise_networks:
-                # `mypy` complains about "_BaseNetwork" has incompatible type "Union[IPv4Network, IPv6Network]"
-                # Typeshed even stats overlaps() on _BaseNetwork
-                # With the isinstance check above I feel this is safe to merge: Follow Up Issue: #6
-                if advertise_network.overlaps(aprefix.prefix):  # type: ignore
+                if advertise_network.overlaps(aprefix.prefix):
                     LOG.debug(
                         f"{aprefix} is a subnet of {advertise_network}. "
                         + "Not advertising to a FIB"
