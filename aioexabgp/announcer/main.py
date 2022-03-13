@@ -14,11 +14,10 @@ from aioexabgp.announcer.healthcheck import gen_advertise_prefixes
 LOG = logging.getLogger(__name__)
 
 
-def _load_json_config(config: str) -> Dict:
+def _load_json_config(config_path: Path) -> Dict:
     """Generate an Announce config - We have one by default"""
     json_conf = {}
 
-    config_path = Path(config)
     if not config_path.exists():
         LOG.error(f"{config_path} does not exist. Can not continue")
         return json_conf
@@ -30,6 +29,15 @@ def _load_json_config(config: str) -> Dict:
         LOG.error(f"Invalid JSON in {config_path}")
 
     return json_conf
+
+
+def _setup_logging(debug: bool, logfile: str) -> None:
+    log_level = logging.DEBUG if debug else logging.INFO
+    logging.basicConfig(
+        filename=logfile,
+        format="[%(asctime)s] %(levelname)s: %(message)s (%(filename)s:%(lineno)d)",
+        level=log_level,
+    )
 
 
 def main() -> int:
@@ -50,18 +58,13 @@ def main() -> int:
         "-l",
         "--logfile",
         default=None,
-        help="File to send announcer specific logs to (Default stderr)",
+        help="File to send announcer specific logs to (Default: stderr)",
     )
     args = parser.parse_args()
 
-    log_level = logging.DEBUG if args.debug else logging.INFO
-    logging.basicConfig(
-        filename=args.logfile,
-        format="[%(asctime)s] %(levelname)s: %(message)s (%(filename)s:%(lineno)d)",
-        level=log_level,
-    )
+    _setup_logging(args.debug, args.logfile)
 
-    config = _load_json_config(args.config)
+    config = _load_json_config(Path(args.config))
     if not config:
         return 69
 
@@ -74,11 +77,7 @@ def main() -> int:
     for s in (signal.SIGINT, signal.SIGTERM):
         loop.add_signal_handler(s, lambda: coordinator_task.cancel())
 
-    try:
-        loop.run_until_complete(coordinator_task)
-    finally:
-        loop.close()
-
+    asyncio.run(coordinator_task)
     return 0
 
 

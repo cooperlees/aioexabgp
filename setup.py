@@ -38,6 +38,9 @@ setup(
         "Programming Language :: Python :: 3.10",
         "Development Status :: 3 - Alpha",
     ],
+    entry_points={
+        "console_scripts": ["aioexabgp-announcer = aioexabgp.announcer.main:main"]
+    },
     python_requires=">=3.8",
     test_suite=ptr_params["test_suite"],
 )
