@@ -102,7 +102,7 @@ class Announcer:
         return stdin_line.strip()
 
     def remove_internal_networks(
-        self, bgp_prefixes: List[FibPrefix], ip_version: int = 6
+        self, bgp_prefixes: List[FibPrefix]
     ) -> List[FibPrefix]:
         """Check if exabgp has told us about an internal summary
         If so remove it from being internally advertised to our FIBs"""
@@ -110,19 +110,13 @@ class Announcer:
             return bgp_prefixes
 
         current_advertise_networks = set(self.advertise_prefixes.keys())
-        default_prefix = ip_network("::/0")
-        valid_redist_networks: Set[FibPrefix] = set()
+        default_prefixes = {ip_network("0.0.0.0/0"), ip_network("::/0")}
+        valid_redist_networks: Dict[int, Set[FibPrefix]] = {4: set(), 6: set()}
 
+        allow_default = self.config["learn"].get("allow_default", False)
         for aprefix in bgp_prefixes:
-            if aprefix.prefix.version != ip_version:
-                LOG.error(
-                    f"{aprefix} was passed. We only accept IP version {ip_version}"
-                )
-                continue
-
-            allow_default = self.config["learn"].get("allow_default", False)
-            if allow_default and aprefix.prefix == default_prefix:
-                valid_redist_networks.add(aprefix)
+            if allow_default and aprefix.prefix in default_prefixes:
+                valid_redist_networks[aprefix.prefix.version].add(aprefix)
                 continue
 
             if aprefix.prefix in current_advertise_networks:
@@ -134,6 +128,8 @@ class Announcer:
 
             is_a_subnet = False
             for advertise_network in current_advertise_networks:
+                if advertise_network.version != aprefix.prefix.version:
+                    continue
                 if advertise_network.overlaps(aprefix.prefix):
                     LOG.debug(
                         f"{aprefix} is a subnet of {advertise_network}. "
@@ -143,9 +139,9 @@ class Announcer:
                     break
 
             if not is_a_subnet:
-                valid_redist_networks.add(aprefix)
+                valid_redist_networks[aprefix.prefix.version].add(aprefix)
 
-        return sorted(valid_redist_networks)
+        return sorted(valid_redist_networks[4]) + sorted(valid_redist_networks[6])
 
     def validate_next_hop(self, next_hop: str) -> str:
         """Ensure next hop can ONLY be self of a valid IP Address"""

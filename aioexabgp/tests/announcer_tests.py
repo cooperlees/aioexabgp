@@ -92,16 +92,16 @@ class AnnouncerTests(unittest.TestCase):
 
     def test_remove_internal_networks(self) -> None:
         potential_networks = [
-            FibPrefix(ip_network("6.9.6.0/24"), None, FibOperation.ADD_ROUTE),
             FibPrefix(ip_network("69::/32"), None, FibOperation.ADD_ROUTE),
             FibPrefix(ip_network("69::/64"), None, FibOperation.ADD_ROUTE),
+            FibPrefix(ip_network("6.9.6.0/24"), None, FibOperation.ADD_ROUTE),
             FibPrefix(ip_network("14:69::/64"), None, FibOperation.ADD_ROUTE),
             FibPrefix(ip_network("11:69::/64"), None, FibOperation.ADD_ROUTE),
         ]
         # Making list in specific way to ensure return is sorted()
         self.assertEqual(
             self.aa.remove_internal_networks(potential_networks),
-            [potential_networks[-1], potential_networks[-2]],
+            [potential_networks[2], potential_networks[-1], potential_networks[-2]],
         )
 
     def test_ensure_default_remove_internal_networks(self) -> None:
