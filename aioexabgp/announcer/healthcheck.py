@@ -47,11 +47,13 @@ class PingChecker(HealthChecker):
         )
 
     async def do_ping(self) -> bool:
-        cmd = ["ping6"] if self.target_ip.version == 6 else ["ping"]
-        if system() != "Darwin":
+        cmd = ["/usr/bin/ping"]
+        if system() == "Darwin":
+            cmd = ["/sbin/ping6"] if self.target_ip.version == 6 else ["/sbin/ping"]
+        else:
             cmd.extend(["-w", str(self.wait)])
         cmd.extend(["-c", str(self.count), self.target_ip.compressed])
-        return (await run_cmd(cmd, self.timeout)).check_returncode == 0
+        return (await run_cmd(cmd, self.timeout)).returncode == 0
 
     async def check(self) -> bool:
         try:
