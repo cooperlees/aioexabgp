@@ -77,7 +77,10 @@ def main() -> int:
     for s in (signal.SIGINT, signal.SIGTERM):
         loop.add_signal_handler(s, lambda: coordinator_task.cancel())
 
-    asyncio.run(coordinator_task)
+    try:
+         loop.run_until_complete(coordinator_task)
+     finally:
+         loop.close()
     return 0
 
 
