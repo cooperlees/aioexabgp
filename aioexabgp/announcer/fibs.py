@@ -69,6 +69,7 @@ class Fib:
         self.allow_ll_nexthop = config["learn"].get("allow_ll_nexthop", False)
         self.prefix_limit = config["learn"].get("prefix_limit", 0)
         self.timeout = timeout
+        self.use_sudo = config["learn"].get("use_sudo", True)
 
     def check_prefix_limit(self) -> int:
         if not self.prefix_limit:
@@ -138,9 +139,7 @@ class LinuxFib(Fib):
         return cp.returncode == 0
 
     async def get_route_table(self, ip_version: int) -> CompletedProcess:
-        return await run_cmd(
-            (self.SUDO_CMD, self.IP_CMD, f"-{ip_version}", "route", "show")
-        )
+        return await run_cmd((self.IP_CMD, f"-{ip_version}", "route", "show"))
 
     async def check_for_route(self, prefix: IPNetwork, next_hop: IPAddress) -> bool:
         route_regex = (
@@ -176,17 +175,22 @@ class LinuxFib(Fib):
         return cp.returncode == 0
 
     def gen_route_command(
-        self, op: str, prefix: IPNetwork, next_hop: IPAddress
+        self,
+        op: str,
+        prefix: IPNetwork,
+        next_hop: IPAddress,
     ) -> List[str]:
-        cmd = [
-            self.SUDO_CMD,
-            self.IP_CMD,
-            f"-{prefix.version}",
-            "route",
-            op,
-            "default" if self.is_default(prefix) else str(prefix),
-            "via",
-        ]
+        cmd = [self.SUDO_CMD] if self.use_sudo else []
+        cmd.extend(
+            [
+                self.IP_CMD,
+                f"-{prefix.version}",
+                "route",
+                op,
+                "default" if self.is_default(prefix) else str(prefix),
+                "via",
+            ]
+        )
         if prefix.version == 4 and next_hop.version == 6:
             cmd.append("inet6")
         cmd.append(str(next_hop))

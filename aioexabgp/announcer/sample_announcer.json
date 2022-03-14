@@ -1,5 +1,5 @@
 {
-    "conf_version": "0.0.4",
+    "conf_version": "0.0.5",
     "advertise": {
         "interval": 5.0,
         "next_hop": "self",
@@ -34,6 +34,7 @@
             "Linux"
         ],
         "filter_prefixes": [],
-        "prefix_limit": 0
+        "prefix_limit": 0,
+        "use_sudo": false
     }
 }
