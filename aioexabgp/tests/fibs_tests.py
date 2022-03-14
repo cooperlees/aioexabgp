@@ -191,6 +191,7 @@ class LinuxFibTests(unittest.TestCase):
             )
 
     def test_del_all_routes(self) -> None:
+        # Test delete all with a nexthop
         with patch(
             f"{BASE_MODULE}.LinuxFib.get_route_table",
             fibs_tests_fixtures.mocked_get_route_table,
@@ -204,6 +205,19 @@ class LinuxFibTests(unittest.TestCase):
             )
             # 1 prefix/route from v4 and 1 from v6 table
             self.assertEqual(2, mock_del_route.call_count)
+
+        # Test no next hope and ensure we delete them all
+        with patch(
+            f"{BASE_MODULE}.LinuxFib.get_route_table",
+            fibs_tests_fixtures.mocked_get_route_table,
+        ), patch(
+            f"{BASE_MODULE}.LinuxFib.del_route", return_value=True
+        ) as mock_del_route:
+            self.assertTrue(
+                self.loop.run_until_complete(self.lfib.del_all_routes(None))
+            )
+            # 2 prefix/route from v4 and 1 from v6 table
+            self.assertEqual(3, mock_del_route.call_count)
 
     def test_gen_route_cmd(self) -> None:
         # test v4 via v6

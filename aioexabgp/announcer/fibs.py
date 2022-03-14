@@ -4,7 +4,14 @@ import asyncio
 import logging
 import re
 from enum import Enum
-from ipaddress import ip_network, IPv4Address, IPv4Network, IPv6Address, IPv6Network
+from ipaddress import (
+    ip_address,
+    ip_network,
+    IPv4Address,
+    IPv4Network,
+    IPv6Address,
+    IPv6Network,
+)
 from platform import system
 from subprocess import CompletedProcess
 from typing import (
@@ -112,7 +119,7 @@ class Fib:
     async def check_for_route(self, prefix: IPNetwork, next_hop: IPAddress) -> bool:
         raise NotImplementedError("Please implement in sub class")
 
-    async def del_all_routes(self, next_hop: IPAddress) -> bool:
+    async def del_all_routes(self, next_hop: Optional[IPAddress]) -> bool:
         raise NotImplementedError("Please implement in sub class")
 
     async def del_route(self, prefix: IPNetwork, next_hop: IPAddress) -> bool:
@@ -150,17 +157,28 @@ class LinuxFib(Fib):
             return True
         return False
 
-    async def del_all_routes(self, next_hop: IPAddress) -> bool:
+    async def del_all_routes(self, next_hop: Optional[IPAddress]) -> bool:
         del_route_count = 0
         v4_route_table = await self.get_route_table(4)
         v6_route_table = await self.get_route_table(6)
-        nexthop_regex = rf"(.*) via.*{next_hop.compressed}.*metric {self.METRIC}.*"
+        remove_regex = (
+            rf"(.*) via.*{next_hop.compressed}.*metric {self.METRIC}.*"
+            if next_hop
+            else rf"(.*) via (.*) dev .*metric {self.METRIC}"
+        )
         for route_table in v4_route_table, v6_route_table:
             for line in route_table.stdout.splitlines():
-                if prefix_match := re.match(nexthop_regex, line):
-                    prefix_str = prefix_match.group(1)
-                    if not await self.del_route(ip_network(prefix_str), next_hop):
-                        LOG.error(f"Failed to delete {prefix_str} in del_all_routes")
+                if prefix_match := re.match(remove_regex, line):
+                    prefix_network = ip_network(prefix_match.group(1))
+                    del_next_hop = (
+                        next_hop
+                        if next_hop
+                        else ip_address(prefix_match.group(2).replace("inet6 ", ""))
+                    )
+                    if not await self.del_route(prefix_network, del_next_hop):
+                        LOG.error(
+                            f"Failed to delete {prefix_network.compressed} in del_all_routes"
+                        )
                     else:
                         del_route_count += 1
         LOG.info(f"del_all_routes deleted {del_route_count} routes")
@@ -298,24 +316,35 @@ async def prefix_consumer(
 async def fib_operation_runner(
     fibs: Dict[str, Fib], fib_operations: Sequence[FibPrefix], dry_run: bool
 ) -> None:
+    lprefix = "[fib_operation_runner] "
     for fib_operation in fib_operations:
         route_tasks: List[Awaitable] = []
-        if not fib_operation.prefix or not fib_operation.next_hop:
-            LOG.error(f"Invalid Fib Operation. Ivalid data: {fib_operation}")
+        if not fib_operation.prefix:
+            LOG.error(f"Invalid Fib Operation. Invalid data: {fib_operation}")
             continue
 
         for fib_name, fib in fibs.items():
             if fib_operation.operation == FibOperation.ADD_ROUTE:
                 LOG.debug(
-                    f"[fib_operation_runner] Adding {fib_operation.prefix} route "
+                    f"{lprefix}Adding {fib_operation.prefix} route "
                     + f"via {fib_operation.next_hop} to {fib_name}"
                 )
+                if not fib_operation.next_hop:
+                    LOG.error(
+                        f"{lprefix}Can't add {fib_operation.prefix} with no next-hop"
+                    )
+                    continue
                 route_tasks.append(
                     fib.add_route(fib_operation.prefix, fib_operation.next_hop)
                 )
             elif fib_operation.operation == FibOperation.REMOVE_ROUTE:
+                if not fib_operation.next_hop:
+                    LOG.error(
+                        f"{lprefix}Can't remove {fib_operation.prefix} with no next-hop"
+                    )
+                    continue
                 LOG.debug(
-                    f"[fib_operation_runner] Removing {fib_operation.prefix} "
+                    f"{lprefix}Removing {fib_operation.prefix} "
                     + f"route via {fib_operation.next_hop} from {fib_name}"
                 )
                 route_tasks.append(
@@ -323,34 +352,30 @@ async def fib_operation_runner(
                 )
             elif fib_operation.operation == FibOperation.REMOVE_ALL_ROUTES:
                 LOG.debug(
-                    "[fib_operation_runner] Removing ALL routes via "
+                    f"{lprefix}Removing ALL routes via "
                     + f"{fib_operation.next_hop} from {fib_name}"
                 )
                 route_tasks.append(fib.del_all_routes(fib_operation.next_hop))
             else:
-                LOG.error(
-                    f"[fib_operation_runner] {fib_operation.operation} "
-                    + "operation is unhandled"
-                )
+                LOG.error(f"{lprefix}{fib_operation.operation} operation is unhandled")
 
         if not route_tasks:
-            LOG.error("[fib_operation_runner] No route tasks generated for update")
+            LOG.error(f"{lprefix}No route tasks generated for update")
             continue
 
         log_msg = (
-            f"[fib_operation_runner] Running all {len(route_tasks)} FIB "
-            + f"operations for {fib_operation}"
+            f"{lprefix}Running {len(route_tasks)} "
+            + f"FIB operations for {fib_operation}"
         )
         if dry_run:
-            LOG.info(f"[DRY RUN] {log_msg}")
+            LOG.info(f"{lprefix}[DRY RUN] {log_msg}")
             continue
 
         LOG.info(log_msg)
         update_success = await asyncio.gather(*route_tasks)
         if not all(update_success):
             LOG.error(
-                "[fib_operation_runner] There was a FIB operation failure. "
-                + " Please investigate!"
+                f"{lprefix}There was a FIB operation failure. Please investigate!"
             )
         else:
             _update_learnt_routes(fib_operations)
