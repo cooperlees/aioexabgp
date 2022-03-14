@@ -78,9 +78,9 @@ def main() -> int:
         loop.add_signal_handler(s, lambda: coordinator_task.cancel())
 
     try:
-         loop.run_until_complete(coordinator_task)
-     finally:
-         loop.close()
+        loop.run_until_complete(coordinator_task)
+    finally:
+        loop.close()
     return 0
 
 
