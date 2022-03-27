@@ -254,7 +254,7 @@ class Announcer:
             LOG.info(f"Route checks complete. Sleeping for {sleep_time}s")
             await asyncio.sleep(sleep_time)
 
-    async def learn(self) -> None:
+    async def learn(self) -> None:  # noqa: C901
         """Read messages from exabgp and act accordinly
         - We only support JSON API"""
         ejp = ExaBGPParser()
