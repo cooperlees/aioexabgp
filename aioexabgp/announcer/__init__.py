@@ -19,7 +19,7 @@ from time import time
 from typing import Awaitable, Dict, List, Optional, Sequence, Set, TextIO, Union
 
 from aioexabgp.exabgpparser import ExaBGPParser
-from .fibs import FibPrefix, prefix_consumer
+from .fibs import FibOperation, FibPrefix, prefix_consumer
 from .healthcheck import HealthChecker
 
 IPNetwork = Union[IPv4Network, IPv6Network]
@@ -298,12 +298,20 @@ class Announcer:
                     )
                     continue
 
-                fib_operations = self.remove_internal_networks(fib_operations)
-                if not fib_operations:
-                    LOG.debug(
-                        f"Did not get an external prefix from API JSON: {bgp_json}"
-                    )
-                    continue
+                # Check if we're only FibOperation.REMOVE_ALL_ROUTES
+                remove_all_routes_only = True
+                for op in fib_operations:
+                    if op.operation != FibOperation.REMOVE_ALL_ROUTES:
+                        remove_all_routes_only = False
+                        break
+
+                if not remove_all_routes_only:
+                    fib_operations = self.remove_internal_networks(fib_operations)
+                    if not fib_operations:
+                        LOG.debug(
+                            f"Did not get an external prefix from API JSON: {bgp_json}"
+                        )
+                        continue
 
                 LOG.debug(f"Adding {fib_operations} to learn_queue")
                 await self.learn_queue.put(fib_operations)

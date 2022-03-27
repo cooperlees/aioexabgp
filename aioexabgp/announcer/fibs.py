@@ -306,6 +306,10 @@ async def prefix_consumer(
                 f"[prefix_consumer] Prefix Queue has {prefix_queue.qsize()} tasks"
                 " queued"
             )
+            LOG.info(
+                "[prefix_consumer] Running the following fib operations: "
+                + f"{fib_operations}"
+            )
             await fib_operation_runner(fibs, fib_operations, dry_run)
         except asyncio.CancelledError:
             raise
