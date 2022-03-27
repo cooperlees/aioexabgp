@@ -225,7 +225,7 @@ def _update_learnt_routes(  # noqa: C901
     del_count = 0
 
     LOG.debug(
-        "[update_learnt_rotues] Attempting to update BGP Learnt Prefixes dictionary"
+        "[update_learnt_routes] Attempting to update BGP Learnt Prefixes dictionary"
     )
     for fib_op in fib_operations:
         if fib_op.operation == FibOperation.ADD_ROUTE:
@@ -238,7 +238,7 @@ def _update_learnt_routes(  # noqa: C901
                 BGP_LEARNT_PREFIXES[fib_op.prefix].add(fib_op.next_hop)
             else:
                 LOG.error(
-                    "[update_learnt_rotues] Got a learnt route with no nethop:"
+                    "[update_learnt_routes] Got a learnt route with no nethop:"
                     f" {fib_op}"
                 )
                 continue
@@ -246,7 +246,7 @@ def _update_learnt_routes(  # noqa: C901
         elif fib_op.operation == FibOperation.REMOVE_ROUTE:
             if fib_op.prefix not in BGP_LEARNT_PREFIXES:
                 LOG.error(
-                    f"[update_learnt_rotues] {fib_op.prefix} not foud in BGP Learnt "
+                    f"[update_learnt_routes] {fib_op.prefix} not foud in BGP Learnt "
                     + "Prefixes - Not deleted"
                 )
                 continue
@@ -263,20 +263,20 @@ def _update_learnt_routes(  # noqa: C901
             if del_ops:
                 del_count += 1
             else:
-                LOG.error(f"[update_learnt_rotues] No deletion took place for {fib_op}")
+                LOG.error(f"[update_learnt_routes] No deletion took place for {fib_op}")
         elif fib_op.operation == FibOperation.REMOVE_ALL_ROUTES:
             del_count = del_count + len(BGP_LEARNT_PREFIXES)
             # Had to make copy of keys and delete prefixes 1 by 1 for unittests to pass
             for key in list(BGP_LEARNT_PREFIXES.keys()):
                 del BGP_LEARNT_PREFIXES[key]
             LOG.info(
-                "[update_learnt_rotues] Resettting BGP Learnt Prefixes due to "
+                "[update_learnt_routes] Resettting BGP Learnt Prefixes due to "
                 + "REMOVE_ALL_ROUTES being received"
             )
         else:
-            LOG.error(f"[update_learnt_rotues] Unknown operation: {fib_op} - Ignoring")
+            LOG.error(f"[update_learnt_routes] Unknown operation: {fib_op} - Ignoring")
 
-    LOG.info(f"[update_learnt_rotues] Completed {add_count} adds / {del_count} removes")
+    LOG.info(f"[update_learnt_routes] Completed {add_count} adds / {del_count} removes")
     return (add_count, del_count)
 
 
